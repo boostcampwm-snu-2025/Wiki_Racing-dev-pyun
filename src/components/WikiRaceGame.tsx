@@ -17,6 +17,7 @@ export function WikiRaceGame() {
     navigateTo,
     goBack,
     jumpToNode,
+    branchFromHistory,
     status,
     allowBacktracking,
     gameMode,
@@ -252,7 +253,7 @@ export function WikiRaceGame() {
               <div className="w-full xl:w-[420px] shrink-0 border-t xl:border-t-0 xl:border-l bg-white">
                 <PathHistory
                   gameState={gameState}
-                  onNodeClick={jumpToNode}
+                  onNodeClick={branchFromHistory}
                   onToggle={() => setShowPathHistory(false)}
                 />
               </div>
