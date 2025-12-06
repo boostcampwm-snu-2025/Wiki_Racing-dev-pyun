@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import type { GameState, VisualNode } from '../types/wikirace';
-import { mockWikiDocuments, getRandomScenario } from '../data/mockWikiData';
+import { useState, useEffect } from 'react';
+import type { VisualNode } from '../types/wikirace';
+import { mockWikiDocuments } from '../data/mockWikiData';
+import { useGameStore } from '../gameStore';
 import { WikiNodeTree } from './WikiNodeTree';
 import { GameHeader } from './GameHeader';
 import { PathHistory } from './PathHistory';
@@ -10,33 +11,32 @@ import { Button } from './ui/button';
 import { Play, Trophy } from 'lucide-react';
 
 export function WikiRaceGame() {
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const gameState = useGameStore();
+  const { startNewGame, navigateTo, goBack, status } = gameState;
+  
   const [visualNodes, setVisualNodes] = useState<VisualNode[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  const startNewGame = () => {
-    const scenario = getRandomScenario();
-    const newGameState: GameState = {
-      startDocId: scenario.start,
-      goalDocId: scenario.goal,
-      currentDocId: scenario.start,
-      path: [scenario.start],
-      moves: 0,
-      startTime: Date.now(),
-      isComplete: false
-    };
-    setGameState(newGameState);
+  useEffect(() => {
+    if (status === 'playing' || status === 'finished') {
+      updateVisualNodes();
+    }
+  }, [gameState.currentDocId, status]);
+
+  const handleStartGame = () => {
     setShowLeaderboard(false);
-    updateVisualNodes(newGameState);
+    startNewGame();
   };
 
-  const updateVisualNodes = (state: GameState) => {
-    const currentDoc = mockWikiDocuments[state.currentDocId];
+  const updateVisualNodes = () => {
+    const { currentDocId, startDocId, goalDocId, path } = gameState;
+    if (!currentDocId) return;
+
+    const currentDoc = mockWikiDocuments[currentDocId];
     if (!currentDoc) return;
 
     const nodes: VisualNode[] = [];
     
-    // Add current node (center)
     nodes.push({
       id: currentDoc.id,
       title: currentDoc.title,
@@ -44,12 +44,11 @@ export function WikiRaceGame() {
       y: 0,
       depth: 0,
       isInPath: true,
-      isStart: currentDoc.id === state.startDocId,
-      isGoal: currentDoc.id === state.goalDocId,
+      isStart: currentDoc.id === startDocId,
+      isGoal: currentDoc.id === goalDocId,
       isCurrent: true
     });
 
-    // Add linked documents (children)
     const angleStep = (Math.PI * 2) / currentDoc.links.length;
     currentDoc.links.forEach((linkId, index) => {
       const linkedDoc = mockWikiDocuments[linkId];
@@ -63,61 +62,15 @@ export function WikiRaceGame() {
           x: Math.cos(angle) * distance,
           y: Math.sin(angle) * distance,
           depth: 1,
-          isInPath: state.path.includes(linkedDoc.id),
-          isStart: linkedDoc.id === state.startDocId,
-          isGoal: linkedDoc.id === state.goalDocId,
+          isInPath: path.includes(linkedDoc.id),
+          isStart: linkedDoc.id === startDocId,
+          isGoal: linkedDoc.id === goalDocId,
           isCurrent: false
         });
       }
     });
 
     setVisualNodes(nodes);
-  };
-
-  const handleNodeClick = (nodeId: string) => {
-    if (!gameState || gameState.isComplete) return;
-    
-    const currentDoc = mockWikiDocuments[gameState.currentDocId];
-    if (!currentDoc.links.includes(nodeId)) return; // Can only click linked documents
-
-    const newPath = [...gameState.path, nodeId];
-    const newGameState: GameState = {
-      ...gameState,
-      currentDocId: nodeId,
-      path: newPath,
-      moves: gameState.moves + 1
-    };
-
-    // Check if goal reached
-    if (nodeId === gameState.goalDocId) {
-      const endTime = Date.now();
-      const timeTaken = Math.floor((endTime - gameState.startTime) / 1000);
-      const score = Math.max(1000 - (newGameState.moves * 50) - timeTaken, 100);
-      
-      newGameState.endTime = endTime;
-      newGameState.isComplete = true;
-      newGameState.score = score;
-    }
-
-    setGameState(newGameState);
-    updateVisualNodes(newGameState);
-  };
-
-  const handleBack = () => {
-    if (!gameState || gameState.path.length <= 1) return;
-
-    const newPath = gameState.path.slice(0, -1);
-    const newCurrentId = newPath[newPath.length - 1];
-    
-    const newGameState: GameState = {
-      ...gameState,
-      currentDocId: newCurrentId,
-      path: newPath,
-      moves: gameState.moves + 1
-    };
-
-    setGameState(newGameState);
-    updateVisualNodes(newGameState);
   };
 
   if (showLeaderboard) {
@@ -134,7 +87,7 @@ export function WikiRaceGame() {
     );
   }
 
-  if (!gameState) {
+  if (status === 'idle') {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-2xl mx-auto p-8 text-center space-y-6">
@@ -154,7 +107,7 @@ export function WikiRaceGame() {
           </div>
 
           <div className="flex gap-4 justify-center">
-            <Button onClick={startNewGame} size="lg" className="gap-2">
+            <Button onClick={handleStartGame} size="lg" className="gap-2">
               <Play className="w-5 h-5" />
               게임 시작
             </Button>
@@ -173,12 +126,12 @@ export function WikiRaceGame() {
     );
   }
 
-  if (gameState.isComplete) {
-    return <GameComplete gameState={gameState} onRestart={startNewGame} />;
+  if (status === 'finished') {
+    return <GameComplete gameState={gameState} onRestart={handleStartGame} />;
   }
 
-  const currentDoc = mockWikiDocuments[gameState.currentDocId];
-  const goalDoc = mockWikiDocuments[gameState.goalDocId];
+  const currentDoc = mockWikiDocuments[gameState.currentDocId!];
+  const goalDoc = mockWikiDocuments[gameState.goalDocId!];
 
   return (
     <div className="w-full h-screen flex flex-col bg-gray-50">
@@ -186,19 +139,17 @@ export function WikiRaceGame() {
         gameState={gameState}
         currentDoc={currentDoc}
         goalDoc={goalDoc}
-        onBack={handleBack}
+        onBack={goBack}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Main visualization area */}
         <div className="flex-1 relative">
           <WikiNodeTree 
             nodes={visualNodes}
-            onNodeClick={handleNodeClick}
+            onNodeClick={navigateTo}
           />
         </div>
 
-        {/* Path history sidebar */}
         <PathHistory
           gameState={gameState}
           onNodeClick={() => {

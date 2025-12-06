@@ -6,15 +6,15 @@ export interface WikiDocument {
 }
 
 export interface GameState {
-  startDocId: string;
-  goalDocId: string;
-  currentDocId: string;
+  startDocId: string | null;
+  goalDocId: string | null;
+  currentDocId: string | null;
   path: string[]; // Stack of document IDs visited
   moves: number;
-  startTime: number;
+  startTime: number | null;
   endTime?: number;
-  isComplete: boolean;
   score?: number;
+  status: 'idle' | 'playing' | 'finished';
 }
 
 export interface LeaderboardEntry {

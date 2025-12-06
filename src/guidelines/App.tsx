@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import MainMenuScreen from './guidelines/MainMenuScreen';
-import GamePlayScreen from './guidelines/GamePlayScreen';
-import LeaderboardScreen from './guidelines/LeaderboardScreen';
+import MainMenuScreen from './MainMenuScreen';
+import GamePlayScreen from './GamePlayScreen';
+import LeaderboardScreen from './LeaderboardScreen';
 
 function App() {
   return (
