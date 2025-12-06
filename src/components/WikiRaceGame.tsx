@@ -16,6 +16,7 @@ export function WikiRaceGame() {
     startNewGame,
     navigateTo,
     goBack,
+    jumpToNode,
     status,
     allowBacktracking,
     gameMode,
@@ -25,7 +26,7 @@ export function WikiRaceGame() {
 
   const [visualNodes, setVisualNodes] = useState<VisualNode[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showPathHistory, setShowPathHistory] = useState(true);
+  const [showPathHistory, setShowPathHistory] = useState(false);
   const [isLoadingNodes, setIsLoadingNodes] = useState(false);
 
   useEffect(() => {
@@ -198,6 +199,7 @@ export function WikiRaceGame() {
         currentDoc={currentDoc}
         goalDoc={goalDoc}
         onBack={goBack}
+        onJumpToNode={jumpToNode}
       />
 
       <div className="flex-1 flex overflow-hidden">
