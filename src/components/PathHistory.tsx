@@ -1,11 +1,24 @@
-import type { GameState } from '../types/wikirace';
+import { useMemo } from 'react';
+import type { GameState, NavigationStep } from '../types/wikirace';
 import { mockWikiDocuments } from '../data/mockWikiData';
 import { ScrollArea } from './ui/scroll-area';
+
+const COLUMN_WIDTH = 64;
+const ROW_HEIGHT = 72;
 
 interface PathHistoryProps {
   gameState: GameState;
   onNodeClick?: (branchId: string, nodeIndex: number, docId: string) => void;
   onToggle?: () => void;
+}
+
+interface HistoryEntry {
+  docId: string;
+  depth: number;
+  previousDepth: number;
+  index: number;
+  isLast: boolean;
+  viaBacktrack: boolean;
 }
 
 export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryProps) {
@@ -57,7 +70,7 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
       <div className="p-4 border-b">
         <h3 className="text-sm font-semibold text-gray-900">방문 기록</h3>
         <div className="text-xs text-gray-500 mt-1">
-          총 {gameState.path.length}개 문서 방문
+          총 {historySteps.length}개 문서 방문 · {gameState.allowBacktracking ? '역링크 허용' : '역링크 비허용'}
         </div>
       </div>
 

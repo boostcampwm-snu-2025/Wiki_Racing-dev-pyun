@@ -32,6 +32,11 @@ export interface GameState {
   status: 'idle' | 'playing' | 'finished';
 }
 
+export interface NavigationStep {
+  docId: string;
+  viaBacktrack: boolean;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   nickname: string;
