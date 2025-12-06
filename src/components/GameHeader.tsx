@@ -167,17 +167,25 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, o
         <>
           {/* 오버레이 - 흐릿한 배경 */}
           <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-md z-40 transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
             onClick={() => setShowHistoryPopup(false)}
           />
 
           {/* 팝업 */}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white border border-gray-300 rounded-lg shadow-xl z-50 p-4 max-w-2xl max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">방문 기록</h3>
+          <div className="fixed left-1/2 top-24 -translate-x-1/2 bg-white border border-gray-300 rounded-xl shadow-2xl z-50 p-5 max-w-3xl w-[90vw] max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">방문 기록</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {allowBacktracking
+                    ? '이전 방문 지점으로 이동할 수 있습니다.'
+                    : '역링크가 비활성화되어 있어 이전 지점으로 이동할 수 없습니다.'}
+                </p>
+              </div>
               <button
                 onClick={() => setShowHistoryPopup(false)}
                 className="text-gray-500 hover:text-gray-700"
+                aria-label="닫기"
               >
                 ✕
               </button>
@@ -200,7 +208,7 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, o
                         setShowHistoryPopup(false);
                       }}
                       disabled={!allowBacktracking || isCurrent}
-                      className={`text-sm px-2 py-1 rounded transition-colors ${
+                      className={`text-sm px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 ${
                         isStart
                           ? 'bg-gray-100 text-gray-700 font-medium'
                           : isCurrent
@@ -215,6 +223,7 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, o
                       }`}
                     >
                       {doc?.title || 'unknown'}
+                      {isCurrent && <span className="ml-1 text-[11px] text-red-500">NOW</span>}
                     </button>
                     {index < gameState.path.length - 1 && (
                       <span className="text-gray-400 mx-1">→</span>

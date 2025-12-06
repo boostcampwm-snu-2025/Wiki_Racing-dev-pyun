@@ -214,9 +214,7 @@ export function WikiRaceGame() {
         {showPathHistory && (
           <PathHistory
             gameState={gameState}
-            onNodeClick={() => {
-              // Optional: Allow clicking on history to see that state
-            }}
+            onNodeClick={jumpToNode}
             onToggle={() => setShowPathHistory(false)}
           />
         )}
