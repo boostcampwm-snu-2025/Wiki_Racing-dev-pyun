@@ -120,7 +120,15 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
     const { activeBranchId } = state;
     if (!activeBranchId) return;
 
-    const currentDoc = mockWikiDocuments[state.currentDocId!];
+    const currentDoc = state.currentDocId
+      ? mockWikiDocuments[state.currentDocId]
+      : undefined;
+
+    // 현재 문서를 찾지 못하면 이동을 중단합니다.
+    if (!currentDoc) {
+      console.warn('Current document is unavailable; navigation aborted.');
+      return;
+    }
     // 현재 문서에 연결된 노드만 클릭 가능
     if (!currentDoc.links.includes(nodeId)) {
       console.warn(`Cannot navigate to ${nodeId} - not linked from current document`);
@@ -246,6 +254,60 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
     set({
       currentDocId: nodeId,
       path: newPath,
+      moves: state.moves + 1,
+    });
+  },
+
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.lastIndexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+    const newPathRefs = state.pathRefs.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      pathRefs: newPathRefs,
+      activeBranchId: newPathRefs[newPathRefs.length - 1]?.branchId ?? state.activeBranchId,
+      moves: state.moves + 1,
+    });
+  },
+
+  branchFromHistory: (branchId, nodeIndex) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+    const targetBranch = state.branches.find(branch => branch.id === branchId);
+    if (!targetBranch) return;
+    if (nodeIndex < 0 || nodeIndex >= targetBranch.nodes.length) return;
+    if (!state.allowBacktracking) return;
+
+    const forkDocId = targetBranch.nodes[nodeIndex];
+    const { path, pathRefs } = buildPathToNode(state.branches, branchId, nodeIndex);
+
+    const newBranchId = createBranchId();
+    const color = branchPalette[state.branches.length % branchPalette.length];
+    const newBranch = {
+      id: newBranchId,
+      parentId: branchId,
+      parentIndex: nodeIndex,
+      nodes: [forkDocId],
+      color,
+    } as const;
+
+    set({
+      currentDocId: forkDocId,
+      path,
+      pathRefs,
+      branches: [...state.branches, newBranch],
+      activeBranchId: newBranchId,
       moves: state.moves + 1,
     });
   },

@@ -70,10 +70,13 @@ export function WikiRaceGame() {
 
   const handleNodeClick = async (nodeId: string) => {
     setIsLoadingNodes(true);
-    // 로딩 UI를 보여주기 위한 짧은 지연
-    await new Promise(resolve => setTimeout(resolve, 300));
-    navigateTo(nodeId);
-    setIsLoadingNodes(false);
+    try {
+      // 로딩 UI를 보여주기 위한 짧은 지연
+      await new Promise(resolve => setTimeout(resolve, 300));
+      navigateTo(nodeId);
+    } finally {
+      setIsLoadingNodes(false);
+    }
   };
 
   const updateVisualNodes = () => {
