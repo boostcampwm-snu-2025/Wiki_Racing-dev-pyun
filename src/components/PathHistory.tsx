@@ -8,7 +8,7 @@ const ROW_HEIGHT = 72;
 
 interface PathHistoryProps {
   gameState: GameState;
-  onNodeClick?: (nodeId: string) => void;
+  onNodeClick?: (branchId: string, nodeIndex: number, docId: string) => void;
   onToggle?: () => void;
 }
 
@@ -22,63 +22,48 @@ interface HistoryEntry {
 }
 
 export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryProps) {
-  const historySteps: NavigationStep[] = useMemo(() => {
-    if (gameState.historyLog?.length) return gameState.historyLog;
-    return (gameState.path || []).map((docId) => ({ docId, viaBacktrack: false }));
-  }, [gameState.historyLog, gameState.path]);
+  const branchCount = gameState.branches.length || 1;
+  const nodeHeight = 96;
+  const columnWidth = 220;
 
-  const { entries, maxDepth } = useMemo(() => {
-    if (historySteps.length === 0) {
-      return { entries: [] as HistoryEntry[], maxDepth: 0 };
-    }
+  const nodePositions: {
+    key: string;
+    branchId: string;
+    nodeIndex: number;
+    docId: string;
+    row: number;
+    x: number;
+    y: number;
+  }[] = [];
 
-    let pathStack: string[] = [];
-    let currentDepth = 0;
-    let previousDepth = 0;
-    let maxDepthLocal = 0;
-
-    const mapped: HistoryEntry[] = historySteps.map(({ docId, viaBacktrack }, index) => {
-      if (index === 0) {
-        pathStack = [docId];
-        currentDepth = 0;
-      } else if (viaBacktrack) {
-        // 과거 노드로 돌아온 경우: 해당 지점까지 경로를 잘라내고 동일 깊이에서 재시작
-        const targetIndex = pathStack.lastIndexOf(docId);
-        if (targetIndex !== -1) {
-          pathStack = pathStack.slice(0, targetIndex + 1);
-          currentDepth = targetIndex;
-        } else {
-          // 방어 로직: 경로에 없는 노드라면 새 루트로 간주
-          pathStack = [docId];
-          currentDepth = 0;
-        }
-      } else {
-        pathStack = [...pathStack, docId];
-        currentDepth = pathStack.length - 1;
-      }
-
-      const entry: HistoryEntry = {
+  gameState.branches.forEach((branch, branchIdx) => {
+    const baseRow = branch.parentIndex;
+    branch.nodes.forEach((docId, nodeIndex) => {
+      const row = baseRow + nodeIndex;
+      const x = branchIdx * columnWidth + columnWidth / 2;
+      const y = row * nodeHeight + nodeHeight / 2;
+      nodePositions.push({
+        key: `${branch.id}-${nodeIndex}`,
+        branchId: branch.id,
+        nodeIndex,
         docId,
-        depth: currentDepth,
-        previousDepth,
-        index,
-        isLast: index === historySteps.length - 1,
-        viaBacktrack,
-      };
-
-      previousDepth = currentDepth;
-      maxDepthLocal = Math.max(maxDepthLocal, currentDepth);
-
-      return entry;
+        row,
+        x,
+        y,
+      });
     });
+  });
 
-    return { entries: mapped, maxDepth: maxDepthLocal };
-  }, [historySteps]);
-
-  const graphWidth = (maxDepth + 1) * COLUMN_WIDTH + 24;
-  const graphHeight = entries.length * ROW_HEIGHT;
-  const contentWidth = graphWidth + 320;
-  const branchColors = ['#fbbf24', '#22d3ee', '#c084fc', '#f472b6', '#34d399', '#60a5fa'];
+  const positionMap = Object.fromEntries(nodePositions.map(pos => [pos.key, pos]));
+  const maxRow = Math.max(0, ...nodePositions.map(pos => pos.row));
+  const activePathKeys = new Set(
+    gameState.pathRefs.map(ref => `${ref.branchId}-${ref.index}`)
+  );
+  const currentKey = gameState.pathRefs[gameState.pathRefs.length - 1]
+    ? `${gameState.pathRefs[gameState.pathRefs.length - 1].branchId}-${
+        gameState.pathRefs[gameState.pathRefs.length - 1].index
+      }`
+    : null;
 
   return (
     <div className="w-80 bg-white border-l flex flex-col max-h-screen">
@@ -91,54 +76,117 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
 
       <div className="flex-1 flex flex-col">
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-3">
-            {/* Git Branch 스타일 시각화 - Figma 디자인 */}
-            {gameState.path.map((docId, index) => {
-              const doc = mockWikiDocuments[docId];
-              const isStart = docId === gameState.startDocId;
-              const isGoal = docId === gameState.goalDocId;
-              const isCurrent = index === gameState.path.length - 1;
-              const isLast = index === gameState.path.length - 1;
+          <div className="p-4">
+            <div
+              className="relative"
+              style={{
+                minWidth: `${branchCount * columnWidth + 40}px`,
+                height: `${(maxRow + 1) * nodeHeight + 40}px`,
+              }}
+            >
+              <svg
+                className="absolute inset-0"
+                width={branchCount * columnWidth + 40}
+                height={(maxRow + 1) * nodeHeight + 40}
+              >
+                {gameState.branches.map(branch => {
+                  return branch.nodes.map((_, idx) => {
+                    if (idx === 0) return null;
+                    const fromKey = `${branch.id}-${idx - 1}`;
+                    const toKey = `${branch.id}-${idx}`;
+                    const fromPos = positionMap[fromKey];
+                    const toPos = positionMap[toKey];
+                    if (!fromPos || !toPos) return null;
+                    return (
+                      <line
+                        key={`${branch.id}-line-${idx}`}
+                        x1={fromPos.x + 20}
+                        y1={fromPos.y + 20}
+                        x2={toPos.x + 20}
+                        y2={toPos.y + 20}
+                        stroke={branch.color}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        opacity={0.9}
+                      />
+                    );
+                  });
+                })}
 
-              // 색상 결정 (Figma: 분홍/노란/초록)
-              let dotColor = 'bg-pink-400';
-              if (isCurrent) dotColor = 'bg-yellow-400';
-              if (isGoal) dotColor = 'bg-green-500';
+                {gameState.branches.map(branch => {
+                  if (!branch.parentId) return null;
+                  const parentKey = `${branch.parentId}-${branch.parentIndex}`;
+                  const childKey = `${branch.id}-0`;
+                  const parentPos = positionMap[parentKey];
+                  const childPos = positionMap[childKey];
+                  if (!parentPos || !childPos) return null;
 
-              return (
-                <div
-                  key={`${docId}-${index}`}
-                  className={`relative flex items-start gap-3 ${
-                    onNodeClick && !isCurrent ? 'cursor-pointer' : ''
-                  }`}
-                  onClick={() => {
-                    if (!onNodeClick || isCurrent) return;
-                    onNodeClick(docId);
-                  }}
-                >
-                  {/* Git Branch 연결선 */}
-                  {!isLast && (
-                    <div className="absolute left-2 top-6 bottom-0 w-0.5 bg-gray-300" />
-                  )}
+                  const midY = (parentPos.y + childPos.y) / 2 + 20;
+                  return (
+                    <path
+                      key={`${branch.id}-fork`}
+                      d={`M${parentPos.x + 20},${parentPos.y + 20} C ${parentPos.x + 80},${midY} ${childPos.x - 40},${midY} ${childPos.x + 20},${childPos.y + 20}`}
+                      fill="none"
+                      stroke={branch.color}
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+              </svg>
 
-                  {/* Git 스타일 점 */}
-                  <div className={`relative z-10 w-4 h-4 rounded-full ${dotColor} flex-shrink-0 mt-1`} />
+              {nodePositions.map(pos => {
+                const doc = mockWikiDocuments[pos.docId];
+                const isStart = pos.docId === gameState.startDocId;
+                const isGoal = pos.docId === gameState.goalDocId;
+                const isCurrent = currentKey === pos.key;
+                const isInPath = activePathKeys.has(pos.key);
+                const badgeLabel = isStart
+                  ? '시작'
+                  : isGoal
+                    ? '목표'
+                    : isCurrent
+                      ? '현재'
+                      : isInPath
+                        ? '경로'
+                        : '';
 
-                  {/* 문서 정보 */}
-                  <div className="flex-1 pb-4">
-                    <div className={`text-sm ${isCurrent ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
-                      {doc?.title || '알 수 없음'}
+                return (
+                  <div
+                    key={pos.key}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 w-[180px] rounded-xl border shadow-sm bg-white transition-transform ${
+                      onNodeClick && !isCurrent ? 'hover:-translate-y-2 cursor-pointer' : ''
+                    } ${isInPath ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-gray-200'}`}
+                    style={{
+                      left: pos.x + 20,
+                      top: pos.y + 20,
+                    }}
+                    onClick={() => {
+                      if (!onNodeClick || isCurrent) return;
+                      onNodeClick(pos.branchId, pos.nodeIndex, pos.docId);
+                    }}
+                  >
+                    <div className="flex items-start gap-2 p-3">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-semibold"
+                        style={{ backgroundColor: gameState.branches.find(b => b.id === pos.branchId)?.color }}
+                      >
+                        {pos.nodeIndex + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm ${isCurrent ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                          {doc?.title || '알 수 없음'}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">{pos.docId}</div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {isStart && '시작 문서'}
-                      {isGoal && '목표 문서'}
-                      {isCurrent && !isGoal && '현재 위치'}
-                      {!isStart && !isGoal && !isCurrent && `단계 ${index + 1}`}
-                    </div>
+                    {badgeLabel && (
+                      <div className="px-3 pb-3 text-[11px] text-indigo-700 font-semibold">{badgeLabel}</div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </ScrollArea>
 
