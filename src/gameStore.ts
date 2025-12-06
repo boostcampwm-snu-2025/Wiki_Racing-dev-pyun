@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GameState } from './types/wikirace';
+import type { GameState, NavigationStep } from './types/wikirace';
 import { getRandomScenario, mockWikiDocuments } from './data/mockWikiData';
 
 /**
@@ -17,6 +17,7 @@ interface GameActions {
   startNewGame: () => void;
   navigateTo: (nodeId: string) => void;
   goBack: () => void;
+  jumpToNode: (nodeId: string) => void;
   setAllowBacktracking: (allow: boolean) => void;
   setGameMode: (mode: 'easy' | 'challenge') => void;
 }
@@ -26,6 +27,7 @@ const initialState: GameState & GameSettings = {
   goalDocId: null,
   currentDocId: null,
   path: [],
+  historyLog: [],
   moves: 0,
   startTime: null,
   status: 'idle',
@@ -50,6 +52,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       goalDocId: scenario.goal,
       currentDocId: scenario.start,
       path: [scenario.start],
+      historyLog: [{ docId: scenario.start, viaBacktrack: false }],
       moves: 0,
       startTime: Date.now(),
       status: 'playing',
@@ -71,6 +74,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
 
     // 이미 방문한 노드를 다시 방문하는 것도 허용 (위키레이싱에서는 일반적)
     const newPath = [...state.path, nodeId];
+    const newHistory: NavigationStep[] = [...state.historyLog, { docId: nodeId, viaBacktrack: false }];
     const newMoves = state.moves + 1;
 
     // 목표 도달 여부 확인
@@ -82,6 +86,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       set({
         currentDocId: nodeId,
         path: newPath,
+        historyLog: newHistory,
         moves: newMoves,
         status: 'finished',
         endTime,
@@ -91,6 +96,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       set({
         currentDocId: nodeId,
         path: newPath,
+        historyLog: newHistory,
         moves: newMoves,
       });
     }
@@ -110,6 +116,28 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       currentDocId: newCurrentId,
       path: newPath,
       moves: state.moves + 1, // 뒤로가기도 이동 횟수에 포함
+      historyLog: [...state.historyLog, { docId: newCurrentId, viaBacktrack: true }],
+    });
+  },
+
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.indexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      moves: state.moves + 1,
+      historyLog: [...state.historyLog, { docId: nodeId, viaBacktrack: true }],
     });
   },
 

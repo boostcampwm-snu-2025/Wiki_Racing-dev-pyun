@@ -83,11 +83,13 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
 
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-white">
+    <div className="w-full h-full relative overflow-hidden rounded-xl bg-white/60 backdrop-blur-sm">
       {/* 노드들을 자유롭게 배치 */}
       {childNodes.map((node, index) => {
         const position = nodePositions.find(p => p.id === node.id);
         if (!position) return null;
+
+        const isVisited = node.isInPath && !node.isGoal;
 
         return (
           <div
@@ -105,17 +107,31 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
             ) : (
               // 로딩 완료 후 실제 노드 표시
               <div
-                className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg cursor-pointer transition-all hover:scale-110 hover:bg-gray-300 shadow-sm"
+                className={`px-4 py-2 rounded-lg cursor-pointer transition-all shadow-sm border whitespace-nowrap ${
+                  node.isGoal
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                    : isVisited
+                    ? 'bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100'
+                    : 'bg-slate-100 border-slate-200 text-slate-900 hover:bg-slate-200'
+                } hover:shadow-md hover:-translate-y-0.5`}
                 onClick={() => onNodeClick(node.id)}
               >
                 <div
-                  className={`text-sm font-medium whitespace-nowrap ${
+                  className={`text-sm font-semibold tracking-tight ${
                     node.isGoal
-                      ? 'text-green-600 font-bold'
-                      : 'text-gray-900'
+                      ? 'text-emerald-700'
+                      : isVisited
+                      ? 'text-orange-700'
+                      : 'text-slate-900'
                   }`}
                 >
                   {node.title}
+                  {isVisited && !node.isGoal && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase text-orange-600">Visited</span>
+                  )}
+                  {node.isGoal && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase text-emerald-600">Goal</span>
+                  )}
                 </div>
               </div>
             )}
