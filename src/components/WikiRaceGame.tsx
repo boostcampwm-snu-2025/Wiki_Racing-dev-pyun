@@ -12,10 +12,21 @@ import { Play, Trophy } from 'lucide-react';
 
 export function WikiRaceGame() {
   const gameState = useGameStore();
-  const { startNewGame, navigateTo, goBack, status } = gameState;
-  
+  const {
+    startNewGame,
+    navigateTo,
+    goBack,
+    status,
+    allowBacktracking,
+    gameMode,
+    setAllowBacktracking,
+    setGameMode
+  } = gameState;
+
   const [visualNodes, setVisualNodes] = useState<VisualNode[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showPathHistory, setShowPathHistory] = useState(true);
+  const [isLoadingNodes, setIsLoadingNodes] = useState(false);
 
   useEffect(() => {
     if (status === 'playing' || status === 'finished') {
@@ -26,6 +37,14 @@ export function WikiRaceGame() {
   const handleStartGame = () => {
     setShowLeaderboard(false);
     startNewGame();
+  };
+
+  const handleNodeClick = async (nodeId: string) => {
+    setIsLoadingNodes(true);
+    // 로딩 UI를 보여주기 위한 짧은 지연
+    await new Promise(resolve => setTimeout(resolve, 300));
+    navigateTo(nodeId);
+    setIsLoadingNodes(false);
   };
 
   const updateVisualNodes = () => {
@@ -89,37 +108,74 @@ export function WikiRaceGame() {
 
   if (status === 'idle') {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className="max-w-2xl mx-auto p-8 text-center space-y-6">
-          <h1 className="text-gray-900">위키레이싱</h1>
-          <p className="text-gray-600">
-            시작 문서에서 목표 문서까지 링크만을 이용하여 도달하세요!
-          </p>
-          
-          <div className="bg-white rounded-lg p-6 shadow-lg space-y-4">
-            <h2 className="text-gray-800">게임 규칙</h2>
-            <ul className="text-gray-600 space-y-2 text-left">
-              <li>✓ 문서 내의 링크만 클릭 가능</li>
-              <li>✓ 뒤로가기는 이동 횟수에 포함됨</li>
-              <li>✓ 적은 이동으로 빠르게 도달할수록 높은 점수</li>
-              <li>✓ 최적 경로를 찾아보세요!</li>
-            </ul>
-          </div>
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-white">
+        {/* Leaderboard 버튼 - 우측 상단 */}
+        <div className="absolute top-4 right-4">
+          <Button
+            onClick={() => setShowLeaderboard(true)}
+            variant="outline"
+            className="bg-gray-800 text-white hover:bg-gray-700 border-gray-800"
+          >
+            <Trophy className="w-4 h-4 mr-2" />
+            Leaderboard
+          </Button>
+        </div>
 
-          <div className="flex gap-4 justify-center">
-            <Button onClick={handleStartGame} size="lg" className="gap-2">
-              <Play className="w-5 h-5" />
-              게임 시작
-            </Button>
-            <Button 
-              onClick={() => setShowLeaderboard(true)} 
-              size="lg" 
-              variant="outline"
-              className="gap-2"
-            >
-              <Trophy className="w-5 h-5" />
-              리더보드
-            </Button>
+        {/* 중앙 컨텐츠 - Figma 디자인 */}
+        <div className="max-w-md mx-auto text-center space-y-8">
+          <h1 className="text-5xl font-bold text-gray-900">WIKIRACING</h1>
+
+          {/* Play 버튼 - 빨간색 */}
+          <Button
+            onClick={handleStartGame}
+            size="lg"
+            className="bg-red-500 hover:bg-red-600 text-white px-8 py-6 text-xl rounded-lg"
+          >
+            Play
+          </Button>
+
+          {/* 하단 옵션들 */}
+          <div className="space-y-4 mt-12">
+            {/* 역링크 허용 토글 */}
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-sm text-gray-600">역링크 허용</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={allowBacktracking}
+                  onChange={(e) => setAllowBacktracking(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-800"></div>
+              </label>
+              <span className="text-xs text-gray-500">
+                {allowBacktracking ? '뒤로가기가 허용됩니다.' : '뒤로가기를 허용하지 않습니다.'}
+              </span>
+            </div>
+
+            {/* 난이도 선택 */}
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setGameMode('easy')}
+                className={`px-4 py-2 text-sm rounded transition-all ${
+                  gameMode === 'easy'
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                연습모드
+              </button>
+              <button
+                onClick={() => setGameMode('challenge')}
+                className={`px-4 py-2 text-sm rounded transition-all ${
+                  gameMode === 'challenge'
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                도전모드
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -130,13 +186,15 @@ export function WikiRaceGame() {
     return <GameComplete gameState={gameState} onRestart={handleStartGame} />;
   }
 
+  const startDoc = mockWikiDocuments[gameState.startDocId!];
   const currentDoc = mockWikiDocuments[gameState.currentDocId!];
   const goalDoc = mockWikiDocuments[gameState.goalDocId!];
 
   return (
     <div className="w-full h-screen flex flex-col bg-gray-50">
-      <GameHeader 
+      <GameHeader
         gameState={gameState}
+        startDoc={startDoc}
         currentDoc={currentDoc}
         goalDoc={goalDoc}
         onBack={goBack}
@@ -144,18 +202,34 @@ export function WikiRaceGame() {
 
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 relative">
-          <WikiNodeTree 
+          <WikiNodeTree
             nodes={visualNodes}
-            onNodeClick={navigateTo}
+            onNodeClick={handleNodeClick}
+            isLoading={isLoadingNodes}
           />
         </div>
 
-        <PathHistory
-          gameState={gameState}
-          onNodeClick={() => {
-            // Optional: Allow clicking on history to see that state
-          }}
-        />
+        {showPathHistory && (
+          <PathHistory
+            gameState={gameState}
+            onNodeClick={() => {
+              // Optional: Allow clicking on history to see that state
+            }}
+            onToggle={() => setShowPathHistory(false)}
+          />
+        )}
+
+        {/* 목록보기 버튼 - PathHistory가 닫혀있을 때 표시 */}
+        {!showPathHistory && (
+          <div className="absolute bottom-4 right-4">
+            <button
+              onClick={() => setShowPathHistory(true)}
+              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-lg hover:bg-gray-100 transition-colors"
+            >
+              목록보기
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

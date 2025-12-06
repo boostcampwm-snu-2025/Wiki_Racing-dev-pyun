@@ -1,16 +1,13 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import MainMenuScreen from './guidelines/MainMenuScreen';
-import GamePlayScreen from './guidelines/GamePlayScreen';
-import LeaderboardScreen from './guidelines/LeaderboardScreen';
+import { WikiRaceGame } from './components/WikiRaceGame';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<MainMenuScreen />} />
-          <Route path="/play" element={<GamePlayScreen />} />
-          <Route path="/leaderboard" element={<LeaderboardScreen />} />
+          <Route path="/" element={<WikiRaceGame />} />
+          <Route path="/play" element={<WikiRaceGame />} />
         </Routes>
       </div>
     </Router>

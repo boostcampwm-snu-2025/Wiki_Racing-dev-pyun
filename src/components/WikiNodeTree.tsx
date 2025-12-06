@@ -1,139 +1,127 @@
+import { useMemo } from 'react';
 import type { VisualNode } from '../types/wikirace';
-import { Target, Flag } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 
 interface WikiNodeTreeProps {
   nodes: VisualNode[];
   onNodeClick: (nodeId: string) => void;
+  isLoading?: boolean;
 }
 
-export function WikiNodeTree({ nodes, onNodeClick }: WikiNodeTreeProps) {
-  const centerNode = nodes.find(n => n.isCurrent);
+interface NodePosition {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNodeTreeProps) {
+  // 중앙 노드는 표시하지 않음 (헤더에 이미 표시됨)
   const childNodes = nodes.filter(n => !n.isCurrent);
 
-  const renderConnections = () => {
-    if (!centerNode) return null;
-    
-    return childNodes.map(child => (
-      <line
-        key={`line-${child.id}`}
-        x1={centerNode.x}
-        y1={centerNode.y}
-        x2={child.x}
-        y2={child.y}
-        stroke={child.isGoal ? '#10B981' : child.isInPath ? '#EF4444' : '#94A3B8'}
-        strokeWidth={child.isGoal ? 3 : 2}
-        strokeDasharray={child.isInPath ? '5,5' : 'none'}
-        opacity={child.isGoal ? 0.8 : 0.4}
-        className="transition-all duration-300"
-      />
-    ));
-  };
+  // 노드 위치를 계산 - 겹치지 않도록 배치
+  const nodePositions = useMemo(() => {
+    const positions: NodePosition[] = [];
+    const nodeWidth = 140; // 노드 너비 (px 단위로 생각)
+    const nodeHeight = 45; // 노드 높이
+    const minGap = 30; // 노드 간 최소 간격
+
+    childNodes.forEach((node, index) => {
+      let attempts = 0;
+      let position: NodePosition | null = null;
+
+      // 겹치지 않는 위치를 찾을 때까지 시도
+      while (attempts < 200 && !position) {
+        const x = Math.random() * 70 + 15; // 15-85% 범위
+        const y = Math.random() * 70 + 15; // 15-85% 범위
+
+        // 다른 노드들과 겹치는지 확인 (사각형 충돌 검사)
+        const overlaps = positions.some(p => {
+          // 화면 크기를 1000px로 가정
+          const thisLeft = (x / 100) * 1000 - nodeWidth / 2;
+          const thisRight = (x / 100) * 1000 + nodeWidth / 2;
+          const thisTop = (y / 100) * 1000 - nodeHeight / 2;
+          const thisBottom = (y / 100) * 1000 + nodeHeight / 2;
+
+          const otherLeft = (p.x / 100) * 1000 - p.width / 2;
+          const otherRight = (p.x / 100) * 1000 + p.width / 2;
+          const otherTop = (p.y / 100) * 1000 - p.height / 2;
+          const otherBottom = (p.y / 100) * 1000 + p.height / 2;
+
+          // 간격을 고려한 충돌 검사
+          return !(
+            thisRight + minGap < otherLeft ||
+            thisLeft - minGap > otherRight ||
+            thisBottom + minGap < otherTop ||
+            thisTop - minGap > otherBottom
+          );
+        });
+
+        if (!overlaps) {
+          position = { id: node.id, x, y, width: nodeWidth, height: nodeHeight };
+        }
+
+        attempts++;
+      }
+
+      // 적절한 위치를 찾지 못했다면 그리드 배치
+      if (!position) {
+        const cols = Math.ceil(Math.sqrt(childNodes.length));
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        const x = 20 + (col * 60 / cols);
+        const y = 20 + (row * 60 / Math.ceil(childNodes.length / cols));
+        position = { id: node.id, x, y, width: nodeWidth, height: nodeHeight };
+      }
+
+      positions.push(position);
+    });
+
+    return positions;
+  }, [childNodes]);
+
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Grid background */}
-      <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
-        <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" strokeWidth="0.5"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
+    <div className="w-full h-full relative overflow-hidden bg-white">
+      {/* 노드들을 자유롭게 배치 */}
+      {childNodes.map((node, index) => {
+        const position = nodePositions.find(p => p.id === node.id);
+        if (!position) return null;
 
-      {/* Nodes and connections */}
-      <svg 
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 1 }}
-      >
-        <g transform={`translate(${window.innerWidth * 0.4}, ${window.innerHeight * 0.5})`}>
-          {renderConnections()}
-        </g>
-      </svg>
-
-      <div 
-        className="absolute inset-0"
-        style={{ 
-          transform: `translate(${window.innerWidth * 0.4}px, ${window.innerHeight * 0.5}px)`,
-          zIndex: 2
-        }}
-      >
-        {nodes.map(node => (
-          <WikiNode
+        return (
+          <div
             key={node.id}
-            node={node}
-            onClick={() => !node.isCurrent && onNodeClick(node.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-interface WikiNodeProps {
-  node: VisualNode;
-  onClick: () => void;
-}
-
-function WikiNode({ node, onClick }: WikiNodeProps) {
-  const getNodeColor = () => {
-    if (node.isGoal) return '#10B981'; // Green for goal
-    if (node.isStart) return '#8B5CF6'; // Purple for start
-    if (node.isCurrent) return '#3B82F6'; // Blue for current
-    if (node.isInPath) return '#F59E0B'; // Orange for visited
-    return '#64748B'; // Gray for unvisited
-  };
-
-  const getNodeSize = () => {
-    if (node.isCurrent) return 'scale-110';
-    if (node.isGoal) return 'scale-105';
-    return 'scale-100';
-  };
-
-  return (
-    <div
-      className={`absolute transition-all duration-300 ${!node.isCurrent ? 'cursor-pointer hover:scale-110' : ''}`}
-      style={{
-        left: `${node.x}px`,
-        top: `${node.y}px`,
-        transform: 'translate(-50%, -50%)',
-        zIndex: node.isCurrent ? 10 : node.isGoal ? 9 : 1
-      }}
-      onClick={onClick}
-    >
-      <div
-        className={`relative px-6 py-4 rounded-2xl shadow-lg transition-all duration-300 min-w-[160px] ${getNodeSize()}`}
-        style={{
-          backgroundColor: getNodeColor(),
-          boxShadow: node.isCurrent 
-            ? `0 0 0 4px white, 0 0 0 6px ${getNodeColor()}, 0 20px 25px -5px rgba(0, 0, 0, 0.1)` 
-            : node.isGoal
-            ? `0 0 20px ${getNodeColor()}`
-            : '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        <div className="flex items-center gap-2 justify-center">
-          {node.isStart && <Flag className="w-4 h-4 text-white" />}
-          {node.isGoal && <Target className="w-5 h-5 text-white animate-pulse" />}
-          <div className="text-white select-none text-center">
-            {node.title}
+            className="absolute"
+            style={{
+              left: `${position.x}%`,
+              top: `${position.y}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            {isLoading ? (
+              // 로딩 중일 때 Skeleton 표시
+              <Skeleton className="h-10 w-32 rounded-lg" />
+            ) : (
+              // 로딩 완료 후 실제 노드 표시
+              <div
+                className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg cursor-pointer transition-all hover:scale-110 hover:bg-gray-300 shadow-sm"
+                onClick={() => onNodeClick(node.id)}
+              >
+                <div
+                  className={`text-sm font-medium whitespace-nowrap ${
+                    node.isGoal
+                      ? 'text-green-600 font-bold'
+                      : 'text-gray-900'
+                  }`}
+                >
+                  {node.title}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        
-        {node.isGoal && (
-          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-            <Target className="w-4 h-4 text-white" />
-          </div>
-        )}
-        
-        {node.isCurrent && (
-          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 translate-y-full mt-2">
-            <div className="bg-gray-800 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
-              현재 위치
-            </div>
-          </div>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }
