@@ -32,30 +32,29 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
       return { entries: [] as HistoryEntry[], maxDepth: 0 };
     }
 
-    const depthByDoc = new Map<string, number>();
+    let pathStack: string[] = [];
     let currentDepth = 0;
     let previousDepth = 0;
     let maxDepthLocal = 0;
-    let branchBaseDepth = 0;
-    let pendingBranch = false;
 
     const mapped: HistoryEntry[] = historySteps.map(({ docId, viaBacktrack }, index) => {
-      const seenDepth = depthByDoc.get(docId);
-
       if (index === 0) {
+        pathStack = [docId];
         currentDepth = 0;
-        branchBaseDepth = 0;
-        pendingBranch = false;
       } else if (viaBacktrack) {
-        // 과거 노드로 돌아온 경우: 기존 깊이에 정렬하고 이후 이동에서만 새 브랜치 생성
-        currentDepth = seenDepth ?? currentDepth;
-        branchBaseDepth = currentDepth;
-        pendingBranch = true;
-      } else if (pendingBranch) {
-        currentDepth = branchBaseDepth + 1;
-        pendingBranch = false;
-      } else if (seenDepth !== undefined) {
-        currentDepth = seenDepth;
+        // 과거 노드로 돌아온 경우: 해당 지점까지 경로를 잘라내고 동일 깊이에서 재시작
+        const targetIndex = pathStack.lastIndexOf(docId);
+        if (targetIndex !== -1) {
+          pathStack = pathStack.slice(0, targetIndex + 1);
+          currentDepth = targetIndex;
+        } else {
+          // 방어 로직: 경로에 없는 노드라면 새 루트로 간주
+          pathStack = [docId];
+          currentDepth = 0;
+        }
+      } else {
+        pathStack = [...pathStack, docId];
+        currentDepth = pathStack.length - 1;
       }
 
       const entry: HistoryEntry = {
@@ -67,7 +66,6 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
         viaBacktrack,
       };
 
-      depthByDoc.set(docId, currentDepth);
       previousDepth = currentDepth;
       maxDepthLocal = Math.max(maxDepthLocal, currentDepth);
 
