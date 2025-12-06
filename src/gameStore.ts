@@ -142,6 +142,26 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
     });
   },
 
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.indexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      moves: state.moves + 1,
+    });
+  },
+
   setAllowBacktracking: (allow) => {
     set({ allowBacktracking: allow });
   },

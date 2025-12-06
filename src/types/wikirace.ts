@@ -33,6 +33,7 @@ export interface LeaderboardEntry {
   moves: number;
   time: number;
   path: string[];
+  isCurrentUser?: boolean;
 }
 
 export interface VisualNode {
