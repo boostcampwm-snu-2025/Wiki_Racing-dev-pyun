@@ -5,6 +5,19 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { ScrollArea } from './ui/scroll-area';
 import { PathReplay } from './PathReplay';
+import { mockWikiDocuments } from '../data/mockWikiData';
+
+interface LeaderboardProps {
+  currentRun?: {
+    path: string[];
+    startDocId: string | null;
+    goalDocId: string | null;
+    score?: number;
+    moves?: number;
+    time?: number;
+    nickname?: string;
+  };
+}
 
 // Mock leaderboard data
 const mockLeaderboard: LeaderboardEntry[] = [
@@ -120,7 +133,7 @@ const mockLeaderboard: LeaderboardEntry[] = [
   }
 ];
 
-export function Leaderboard() {
+export function Leaderboard({ currentRun }: LeaderboardProps) {
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null);
   const [showReplay, setShowReplay] = useState(false);
 
@@ -151,6 +164,28 @@ export function Leaderboard() {
     }
   };
 
+  const entries: LeaderboardEntry[] = (() => {
+    if (!currentRun || currentRun.path.length === 0) return mockLeaderboard;
+
+    const startTitle = currentRun.startDocId ? mockWikiDocuments[currentRun.startDocId]?.title : undefined;
+    const goalTitle = currentRun.goalDocId ? mockWikiDocuments[currentRun.goalDocId]?.title : undefined;
+
+    const currentEntry: LeaderboardEntry = {
+      rank: 0,
+      nickname: currentRun.nickname ?? '내 경로',
+      startDoc: startTitle ?? '시작',
+      goalDoc: goalTitle ?? '목표',
+      difficulty: '현재 플레이',
+      score: currentRun.score ?? 0,
+      moves: currentRun.moves ?? Math.max(currentRun.path.length - 1, 0),
+      time: currentRun.time ?? 0,
+      path: currentRun.path,
+      isCurrentUser: true
+    };
+
+    return [currentEntry, ...mockLeaderboard];
+  })();
+
   return (
     <>
       <ScrollArea className="flex-1">
@@ -174,15 +209,24 @@ export function Leaderboard() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {mockLeaderboard.map((entry) => (
-                  <tr key={entry.rank} className="hover:bg-gray-50 transition-colors">
+                {entries.map((entry) => (
+                  <tr
+                    key={`${entry.rank}-${entry.nickname}`}
+                    className={`hover:bg-gray-50 transition-colors ${entry.isCurrentUser ? 'bg-indigo-50/40' : ''}`}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {getRankIcon(entry.rank)}
+                        {entry.isCurrentUser ? (
+                          <div className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] flex items-center justify-center">
+                            내
+                          </div>
+                        ) : (
+                          getRankIcon(entry.rank)
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-gray-900">{entry.nickname}</div>
+                      <div className={`text-gray-900 ${entry.isCurrentUser ? 'font-semibold' : ''}`}>{entry.nickname}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-gray-600 text-sm">
