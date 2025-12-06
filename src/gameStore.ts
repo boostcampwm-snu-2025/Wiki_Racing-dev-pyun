@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GameState } from './types/wikirace';
+import type { GameState, NavigationStep } from './types/wikirace';
 import { getRandomScenario, mockWikiDocuments } from './data/mockWikiData';
 
 /**
@@ -145,6 +145,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
 
     // 이미 방문한 노드를 다시 방문하는 것도 허용 (위키레이싱에서는 일반적)
     const newPath = [...state.path, nodeId];
+    const newHistory: NavigationStep[] = [...state.historyLog, { docId: nodeId, viaBacktrack: false }];
     const newMoves = state.moves + 1;
     const newPathRefs = [...state.pathRefs, { branchId: activeBranchId, index: branchIndex }];
 
@@ -192,6 +193,122 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       pathRefs: newPathRefs,
       activeBranchId: newPathRefs[newPathRefs.length - 1]?.branchId ?? state.activeBranchId,
       moves: state.moves + 1, // 뒤로가기도 이동 횟수에 포함
+      historyLog: [...state.historyLog, { docId: newCurrentId, viaBacktrack: true }],
+    });
+  },
+
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.indexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      moves: state.moves + 1,
+      historyLog: [...state.historyLog, { docId: nodeId, viaBacktrack: true }],
+    });
+  },
+
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.indexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      moves: state.moves + 1,
+    });
+  },
+
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.indexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      moves: state.moves + 1,
+    });
+  },
+
+  jumpToNode: (nodeId) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
+    if (!state.allowBacktracking) return;
+
+    const targetIndex = state.path.lastIndexOf(nodeId);
+    // 경로에 없는 노드거나 이미 현재 노드면 무시
+    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
+
+    const newPath = state.path.slice(0, targetIndex + 1);
+    const newPathRefs = state.pathRefs.slice(0, targetIndex + 1);
+
+    set({
+      currentDocId: nodeId,
+      path: newPath,
+      pathRefs: newPathRefs,
+      activeBranchId: newPathRefs[newPathRefs.length - 1]?.branchId ?? state.activeBranchId,
+      moves: state.moves + 1,
+    });
+  },
+
+  branchFromHistory: (branchId, nodeIndex) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+    const targetBranch = state.branches.find(branch => branch.id === branchId);
+    if (!targetBranch) return;
+    if (nodeIndex < 0 || nodeIndex >= targetBranch.nodes.length) return;
+    if (!state.allowBacktracking) return;
+
+    const forkDocId = targetBranch.nodes[nodeIndex];
+    const { path, pathRefs } = buildPathToNode(state.branches, branchId, nodeIndex);
+
+    const newBranchId = createBranchId();
+    const color = branchPalette[state.branches.length % branchPalette.length];
+    const newBranch = {
+      id: newBranchId,
+      parentId: branchId,
+      parentIndex: nodeIndex,
+      nodes: [forkDocId],
+      color,
+    } as const;
+
+    set({
+      currentDocId: forkDocId,
+      path,
+      pathRefs,
+      branches: [...state.branches, newBranch],
+      activeBranchId: newBranchId,
+      moves: state.moves + 1,
     });
   },
 
