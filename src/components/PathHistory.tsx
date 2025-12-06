@@ -83,7 +83,7 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
   const branchColors = ['#fbbf24', '#22d3ee', '#c084fc', '#f472b6', '#34d399', '#60a5fa'];
 
   return (
-    <div className="w-96 bg-white border-l flex flex-col max-h-screen h-full overflow-hidden">
+    <div className="w-full sm:max-w-md xl:w-96 bg-white border-l flex flex-col max-h-screen h-full overflow-hidden">
       <div className="p-4 border-b bg-white sticky top-0 z-10">
         <h3 className="text-sm font-semibold text-gray-900">방문 기록</h3>
         <div className="text-xs text-gray-500 mt-1">

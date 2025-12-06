@@ -21,7 +21,8 @@ export function WikiRaceGame() {
     allowBacktracking,
     gameMode,
     setAllowBacktracking,
-    setGameMode
+    setGameMode,
+    returnToMenu
   } = gameState;
 
   const [visualNodes, setVisualNodes] = useState<VisualNode[]>([]);
@@ -38,6 +39,15 @@ export function WikiRaceGame() {
   const handleStartGame = () => {
     setShowLeaderboard(false);
     startNewGame();
+  };
+
+  const handleReturnHome = () => {
+    setShowLeaderboard(false);
+    returnToMenu();
+  };
+
+  const handleShowLeaderboard = () => {
+    setShowLeaderboard(true);
   };
 
   const handleNodeClick = async (nodeId: string) => {
@@ -184,7 +194,14 @@ export function WikiRaceGame() {
   }
 
   if (status === 'finished') {
-    return <GameComplete gameState={gameState} onRestart={handleStartGame} />;
+    return (
+      <GameComplete
+        gameState={gameState}
+        onRestart={handleStartGame}
+        onReturnHome={handleReturnHome}
+        onShowLeaderboard={handleShowLeaderboard}
+      />
+    );
   }
 
   const startDoc = mockWikiDocuments[gameState.startDocId!];
@@ -192,8 +209,8 @@ export function WikiRaceGame() {
   const goalDoc = mockWikiDocuments[gameState.goalDocId!];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-4">
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 space-y-4">
         <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl overflow-hidden backdrop-blur">
           <GameHeader
             gameState={gameState}
@@ -204,8 +221,8 @@ export function WikiRaceGame() {
             onJumpToNode={jumpToNode}
           />
 
-          <div className="flex min-h-[620px] overflow-hidden">
-            <div className="flex-1 relative p-6 bg-gradient-to-br from-white via-slate-50 to-indigo-50">
+          <div className="flex flex-col xl:flex-row min-h-[620px] overflow-hidden">
+            <div className="flex-1 relative p-6 bg-gradient-to-br from-white via-slate-50 to-indigo-50 min-h-[480px]">
               <div className="absolute inset-6 rounded-2xl border border-dashed border-indigo-100 pointer-events-none" aria-hidden />
               <WikiNodeTree
                 nodes={visualNodes}
@@ -215,26 +232,29 @@ export function WikiRaceGame() {
             </div>
 
             {showPathHistory && (
-              <PathHistory
-                gameState={gameState}
-                onNodeClick={jumpToNode}
-                onToggle={() => setShowPathHistory(false)}
-              />
+              <div className="w-full xl:w-[420px] shrink-0 border-t xl:border-t-0 xl:border-l bg-white">
+                <PathHistory
+                  gameState={gameState}
+                  onNodeClick={jumpToNode}
+                  onToggle={() => setShowPathHistory(false)}
+                />
+              </div>
             )}
           </div>
         </div>
-
-        {!showPathHistory && (
-          <div className="flex justify-end">
-            <button
-              onClick={() => setShowPathHistory(true)}
-              className="px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-200 rounded-full shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all"
-            >
-              목록보기
-            </button>
-          </div>
-        )}
       </div>
+
+      {!showPathHistory && (
+        <div className="fixed bottom-6 right-6 z-30 drop-shadow-lg">
+          <button
+            onClick={() => setShowPathHistory(true)}
+            className="px-5 py-3 text-sm font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-full shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all"
+            aria-label="방문 기록 목록 보기"
+          >
+            목록보기
+          </button>
+        </div>
+      )}
     </div>
   );
 }
