@@ -34,7 +34,16 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
             if (isGoal) dotColor = 'bg-green-500';
 
             return (
-              <div key={`${docId}-${index}`} className="relative flex items-start gap-3">
+              <div
+                key={`${docId}-${index}`}
+                className={`relative flex items-start gap-3 ${
+                  onNodeClick && !isCurrent ? 'cursor-pointer' : ''
+                }`}
+                onClick={() => {
+                  if (!onNodeClick || isCurrent) return;
+                  onNodeClick(docId);
+                }}
+              >
                 {/* Git Branch 연결선 */}
                 {!isLast && (
                   <div className="absolute left-2 top-6 bottom-0 w-0.5 bg-gray-300" />
