@@ -16,17 +16,37 @@ export function WikiRaceGame() {
     startNewGame,
     navigateTo,
     goBack,
+    jumpToNode,
+    branchFromHistory,
     status,
     allowBacktracking,
     gameMode,
     setAllowBacktracking,
-    setGameMode
+    setGameMode,
+    returnToMenu
   } = gameState;
 
   const [visualNodes, setVisualNodes] = useState<VisualNode[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showPathHistory, setShowPathHistory] = useState(true);
+  const [showPathHistory, setShowPathHistory] = useState(false);
   const [isLoadingNodes, setIsLoadingNodes] = useState(false);
+
+  const leaderboardEntry = gameState.path.length
+    ? {
+        path: gameState.path,
+        startDocId: gameState.startDocId,
+        goalDocId: gameState.goalDocId,
+        score: gameState.score,
+        moves: gameState.moves,
+        time:
+          gameState.status === 'finished' && gameState.endTime && gameState.startTime
+            ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+            : gameState.startTime
+              ? Math.floor((Date.now() - gameState.startTime) / 1000)
+              : 0,
+        nickname: '내 플레이'
+      }
+    : undefined;
 
   useEffect(() => {
     if (status === 'playing' || status === 'finished') {
@@ -39,12 +59,24 @@ export function WikiRaceGame() {
     startNewGame();
   };
 
+  const handleReturnHome = () => {
+    setShowLeaderboard(false);
+    returnToMenu();
+  };
+
+  const handleShowLeaderboard = () => {
+    setShowLeaderboard(true);
+  };
+
   const handleNodeClick = async (nodeId: string) => {
     setIsLoadingNodes(true);
-    // 로딩 UI를 보여주기 위한 짧은 지연
-    await new Promise(resolve => setTimeout(resolve, 300));
-    navigateTo(nodeId);
-    setIsLoadingNodes(false);
+    try {
+      // 로딩 UI를 보여주기 위한 짧은 지연
+      await new Promise(resolve => setTimeout(resolve, 300));
+      navigateTo(nodeId);
+    } finally {
+      setIsLoadingNodes(false);
+    }
   };
 
   const updateVisualNodes = () => {
@@ -101,7 +133,7 @@ export function WikiRaceGame() {
             게임으로 돌아가기
           </Button>
         </div>
-        <Leaderboard />
+        <Leaderboard currentRun={leaderboardEntry} />
       </div>
     );
   }
@@ -183,7 +215,14 @@ export function WikiRaceGame() {
   }
 
   if (status === 'finished') {
-    return <GameComplete gameState={gameState} onRestart={handleStartGame} />;
+    return (
+      <GameComplete
+        gameState={gameState}
+        onRestart={handleStartGame}
+        onReturnHome={handleReturnHome}
+        onShowLeaderboard={handleShowLeaderboard}
+      />
+    );
   }
 
   const startDoc = mockWikiDocuments[gameState.startDocId!];
@@ -191,46 +230,52 @@ export function WikiRaceGame() {
   const goalDoc = mockWikiDocuments[gameState.goalDocId!];
 
   return (
-    <div className="w-full h-screen flex flex-col bg-gray-50">
-      <GameHeader
-        gameState={gameState}
-        startDoc={startDoc}
-        currentDoc={currentDoc}
-        goalDoc={goalDoc}
-        onBack={goBack}
-      />
-
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 relative">
-          <WikiNodeTree
-            nodes={visualNodes}
-            onNodeClick={handleNodeClick}
-            isLoading={isLoadingNodes}
-          />
-        </div>
-
-        {showPathHistory && (
-          <PathHistory
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 space-y-4">
+        <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl overflow-hidden backdrop-blur">
+          <GameHeader
             gameState={gameState}
-            onNodeClick={() => {
-              // Optional: Allow clicking on history to see that state
-            }}
-            onToggle={() => setShowPathHistory(false)}
+            startDoc={startDoc}
+            currentDoc={currentDoc}
+            goalDoc={goalDoc}
+            onBack={goBack}
+            onJumpToNode={jumpToNode}
           />
-        )}
 
-        {/* 목록보기 버튼 - PathHistory가 닫혀있을 때 표시 */}
-        {!showPathHistory && (
-          <div className="absolute bottom-4 right-4">
-            <button
-              onClick={() => setShowPathHistory(true)}
-              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-lg hover:bg-gray-100 transition-colors"
-            >
-              목록보기
-            </button>
+          <div className="flex flex-col xl:flex-row min-h-[620px] overflow-hidden">
+            <div className="flex-1 relative p-6 bg-gradient-to-br from-white via-slate-50 to-indigo-50 min-h-[480px]">
+              <div className="absolute inset-6 rounded-2xl border border-dashed border-indigo-100 pointer-events-none" aria-hidden />
+              <WikiNodeTree
+                nodes={visualNodes}
+                onNodeClick={handleNodeClick}
+                isLoading={isLoadingNodes}
+              />
+            </div>
+
+            {showPathHistory && (
+              <div className="w-full xl:w-[420px] shrink-0 border-t xl:border-t-0 xl:border-l bg-white">
+                <PathHistory
+                  gameState={gameState}
+                  onNodeClick={branchFromHistory}
+                  onToggle={() => setShowPathHistory(false)}
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
+
+      {!showPathHistory && (
+        <div className="fixed bottom-6 right-6 z-30 drop-shadow-lg">
+          <button
+            onClick={() => setShowPathHistory(true)}
+            className="px-5 py-3 text-sm font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-full shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all"
+            aria-label="방문 기록 목록 보기"
+          >
+            목록보기
+          </button>
+        </div>
+      )}
     </div>
   );
 }
