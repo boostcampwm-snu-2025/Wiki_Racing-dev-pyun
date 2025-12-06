@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GameState } from './types/wikirace';
+import type { GameState, NavigationStep } from './types/wikirace';
 import { getRandomScenario, mockWikiDocuments } from './data/mockWikiData';
 
 /**
@@ -52,7 +52,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       goalDocId: scenario.goal,
       currentDocId: scenario.start,
       path: [scenario.start],
-      historyLog: [scenario.start],
+      historyLog: [{ docId: scenario.start, viaBacktrack: false }],
       moves: 0,
       startTime: Date.now(),
       status: 'playing',
@@ -74,7 +74,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
 
     // 이미 방문한 노드를 다시 방문하는 것도 허용 (위키레이싱에서는 일반적)
     const newPath = [...state.path, nodeId];
-    const newHistory = [...state.historyLog, nodeId];
+    const newHistory: NavigationStep[] = [...state.historyLog, { docId: nodeId, viaBacktrack: false }];
     const newMoves = state.moves + 1;
 
     // 목표 도달 여부 확인
@@ -116,7 +116,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       currentDocId: newCurrentId,
       path: newPath,
       moves: state.moves + 1, // 뒤로가기도 이동 횟수에 포함
-      historyLog: [...state.historyLog, newCurrentId],
+      historyLog: [...state.historyLog, { docId: newCurrentId, viaBacktrack: true }],
     });
   },
 
@@ -137,7 +137,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       currentDocId: nodeId,
       path: newPath,
       moves: state.moves + 1,
-      historyLog: [...state.historyLog, nodeId],
+      historyLog: [...state.historyLog, { docId: nodeId, viaBacktrack: true }],
     });
   },
 

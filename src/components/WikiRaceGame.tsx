@@ -192,39 +192,43 @@ export function WikiRaceGame() {
   const goalDoc = mockWikiDocuments[gameState.goalDocId!];
 
   return (
-    <div className="w-full h-screen flex flex-col bg-gray-50">
-      <GameHeader
-        gameState={gameState}
-        startDoc={startDoc}
-        currentDoc={currentDoc}
-        goalDoc={goalDoc}
-        onBack={goBack}
-        onJumpToNode={jumpToNode}
-      />
-
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 relative">
-          <WikiNodeTree
-            nodes={visualNodes}
-            onNodeClick={handleNodeClick}
-            isLoading={isLoadingNodes}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-4">
+        <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl overflow-hidden backdrop-blur">
+          <GameHeader
+            gameState={gameState}
+            startDoc={startDoc}
+            currentDoc={currentDoc}
+            goalDoc={goalDoc}
+            onBack={goBack}
+            onJumpToNode={jumpToNode}
           />
+
+          <div className="flex min-h-[620px] overflow-hidden">
+            <div className="flex-1 relative p-6 bg-gradient-to-br from-white via-slate-50 to-indigo-50">
+              <div className="absolute inset-6 rounded-2xl border border-dashed border-indigo-100 pointer-events-none" aria-hidden />
+              <WikiNodeTree
+                nodes={visualNodes}
+                onNodeClick={handleNodeClick}
+                isLoading={isLoadingNodes}
+              />
+            </div>
+
+            {showPathHistory && (
+              <PathHistory
+                gameState={gameState}
+                onNodeClick={jumpToNode}
+                onToggle={() => setShowPathHistory(false)}
+              />
+            )}
+          </div>
         </div>
 
-        {showPathHistory && (
-          <PathHistory
-            gameState={gameState}
-            onNodeClick={jumpToNode}
-            onToggle={() => setShowPathHistory(false)}
-          />
-        )}
-
-        {/* 목록보기 버튼 - PathHistory가 닫혀있을 때 표시 */}
         {!showPathHistory && (
-          <div className="absolute bottom-4 right-4">
+          <div className="flex justify-end">
             <button
               onClick={() => setShowPathHistory(true)}
-              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-lg hover:bg-gray-100 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-200 rounded-full shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all"
             >
               목록보기
             </button>
