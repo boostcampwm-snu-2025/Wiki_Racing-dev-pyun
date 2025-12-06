@@ -30,6 +30,23 @@ export function WikiRaceGame() {
   const [showPathHistory, setShowPathHistory] = useState(false);
   const [isLoadingNodes, setIsLoadingNodes] = useState(false);
 
+  const leaderboardEntry = gameState.path.length
+    ? {
+        path: gameState.path,
+        startDocId: gameState.startDocId,
+        goalDocId: gameState.goalDocId,
+        score: gameState.score,
+        moves: gameState.moves,
+        time:
+          gameState.status === 'finished' && gameState.endTime && gameState.startTime
+            ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+            : gameState.startTime
+              ? Math.floor((Date.now() - gameState.startTime) / 1000)
+              : 0,
+        nickname: '내 플레이'
+      }
+    : undefined;
+
   useEffect(() => {
     if (status === 'playing' || status === 'finished') {
       updateVisualNodes();
@@ -112,7 +129,7 @@ export function WikiRaceGame() {
             게임으로 돌아가기
           </Button>
         </div>
-        <Leaderboard />
+        <Leaderboard currentRun={leaderboardEntry} />
       </div>
     );
   }
