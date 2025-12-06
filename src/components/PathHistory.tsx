@@ -28,33 +28,41 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
       return { entries: [] as HistoryEntry[], maxDepth: 0 };
     }
 
-    const stack: string[] = [history[0]];
+    const depthByDoc = new Map<string, number>();
+    let currentDepth = 0;
     let previousDepth = 0;
     let maxDepthLocal = 0;
+    let branchBaseDepth = 0;
+    let pendingBranch = false;
 
     const mapped: HistoryEntry[] = history.map((docId, index) => {
-      if (index > 0) {
-        const existingIndex = stack.lastIndexOf(docId);
-        if (existingIndex !== -1) {
-          // 이미 방문한 노드로 되돌아왔을 때는 해당 지점 이후를 잘라내고 새 브랜치를 준비
-          stack.splice(existingIndex + 1);
-        } else {
-          stack.push(docId);
+      const seenDepth = depthByDoc.get(docId);
+
+      if (seenDepth !== undefined) {
+        // 이전에 방문했던 노드로 돌아온 경우: 이후 방문부터 새 브랜치로 취급
+        currentDepth = seenDepth;
+        branchBaseDepth = currentDepth;
+        pendingBranch = true;
+      } else {
+        // 처음 방문하는 노드
+        if (pendingBranch) {
+          currentDepth = branchBaseDepth + 1;
+          pendingBranch = false;
         }
       }
 
-      const depth = stack.length - 1;
-      maxDepthLocal = Math.max(maxDepthLocal, depth);
-
       const entry: HistoryEntry = {
         docId,
-        depth,
+        depth: currentDepth,
         previousDepth,
         index,
         isLast: index === history.length - 1,
       };
 
-      previousDepth = depth;
+      depthByDoc.set(docId, currentDepth);
+      previousDepth = currentDepth;
+      maxDepthLocal = Math.max(maxDepthLocal, currentDepth);
+
       return entry;
     });
 
@@ -63,6 +71,7 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
 
   const graphWidth = (maxDepth + 1) * COLUMN_WIDTH + 24;
   const graphHeight = entries.length * ROW_HEIGHT;
+  const contentWidth = graphWidth + 320;
 
   return (
     <div className="w-96 bg-white border-l flex flex-col max-h-screen h-full overflow-hidden">
@@ -74,7 +83,7 @@ export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryPro
       </div>
 
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4">
+        <div className="p-4" style={{ minWidth: `${contentWidth}px` }}>
           <div className="relative" style={{ height: `${graphHeight}px` }}>
             {/* 브랜치 커넥터 (SVG) */}
             <svg
