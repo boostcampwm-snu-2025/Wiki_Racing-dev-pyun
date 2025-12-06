@@ -1,6 +1,10 @@
-import type { GameState } from '../types/wikirace';
+import { useMemo } from 'react';
+import type { GameState, NavigationStep } from '../types/wikirace';
 import { mockWikiDocuments } from '../data/mockWikiData';
 import { ScrollArea } from './ui/scroll-area';
+
+const COLUMN_WIDTH = 64;
+const ROW_HEIGHT = 72;
 
 interface PathHistoryProps {
   gameState: GameState;
@@ -8,13 +12,80 @@ interface PathHistoryProps {
   onToggle?: () => void;
 }
 
+interface HistoryEntry {
+  docId: string;
+  depth: number;
+  previousDepth: number;
+  index: number;
+  isLast: boolean;
+  viaBacktrack: boolean;
+}
+
 export function PathHistory({ gameState, onNodeClick, onToggle }: PathHistoryProps) {
+  const historySteps: NavigationStep[] = useMemo(() => {
+    if (gameState.historyLog?.length) return gameState.historyLog;
+    return (gameState.path || []).map((docId) => ({ docId, viaBacktrack: false }));
+  }, [gameState.historyLog, gameState.path]);
+
+  const { entries, maxDepth } = useMemo(() => {
+    if (historySteps.length === 0) {
+      return { entries: [] as HistoryEntry[], maxDepth: 0 };
+    }
+
+    let pathStack: string[] = [];
+    let currentDepth = 0;
+    let previousDepth = 0;
+    let maxDepthLocal = 0;
+
+    const mapped: HistoryEntry[] = historySteps.map(({ docId, viaBacktrack }, index) => {
+      if (index === 0) {
+        pathStack = [docId];
+        currentDepth = 0;
+      } else if (viaBacktrack) {
+        // 과거 노드로 돌아온 경우: 해당 지점까지 경로를 잘라내고 동일 깊이에서 재시작
+        const targetIndex = pathStack.lastIndexOf(docId);
+        if (targetIndex !== -1) {
+          pathStack = pathStack.slice(0, targetIndex + 1);
+          currentDepth = targetIndex;
+        } else {
+          // 방어 로직: 경로에 없는 노드라면 새 루트로 간주
+          pathStack = [docId];
+          currentDepth = 0;
+        }
+      } else {
+        pathStack = [...pathStack, docId];
+        currentDepth = pathStack.length - 1;
+      }
+
+      const entry: HistoryEntry = {
+        docId,
+        depth: currentDepth,
+        previousDepth,
+        index,
+        isLast: index === historySteps.length - 1,
+        viaBacktrack,
+      };
+
+      previousDepth = currentDepth;
+      maxDepthLocal = Math.max(maxDepthLocal, currentDepth);
+
+      return entry;
+    });
+
+    return { entries: mapped, maxDepth: maxDepthLocal };
+  }, [historySteps]);
+
+  const graphWidth = (maxDepth + 1) * COLUMN_WIDTH + 24;
+  const graphHeight = entries.length * ROW_HEIGHT;
+  const contentWidth = graphWidth + 320;
+  const branchColors = ['#fbbf24', '#22d3ee', '#c084fc', '#f472b6', '#34d399', '#60a5fa'];
+
   return (
     <div className="w-80 bg-white border-l flex flex-col max-h-screen">
       <div className="p-4 border-b">
         <h3 className="text-sm font-semibold text-gray-900">방문 기록</h3>
         <div className="text-xs text-gray-500 mt-1">
-          총 {gameState.path.length}개 문서 방문
+          총 {historySteps.length}개 문서 방문 · {gameState.allowBacktracking ? '역링크 허용' : '역링크 비허용'}
         </div>
       </div>
 
