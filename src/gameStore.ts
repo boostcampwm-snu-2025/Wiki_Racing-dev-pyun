@@ -18,6 +18,7 @@ interface GameActions {
   navigateTo: (nodeId: string) => void;
   goBack: () => void;
   jumpToNode: (nodeId: string) => void;
+  returnToMenu: () => void;
   setAllowBacktracking: (allow: boolean) => void;
   setGameMode: (mode: 'easy' | 'challenge') => void;
 }
@@ -147,5 +148,15 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
 
   setGameMode: (mode) => {
     set({ gameMode: mode });
+  },
+
+  returnToMenu: () => {
+    const state = get();
+    set({
+      ...initialState,
+      allowBacktracking: state.allowBacktracking,
+      gameMode: state.gameMode,
+      status: 'idle',
+    });
   },
 }));
