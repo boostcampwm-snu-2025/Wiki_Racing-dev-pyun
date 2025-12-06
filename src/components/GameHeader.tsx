@@ -10,10 +10,11 @@ interface GameHeaderProps {
   currentDoc: WikiDocument;
   goalDoc: WikiDocument;
   onBack: () => void;
+  onJumpToNode: (nodeId: string) => void;
   isLoading?: boolean;
 }
 
-export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, isLoading = false }: GameHeaderProps) {
+export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, onJumpToNode, isLoading = false }: GameHeaderProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHistoryPopup, setShowHistoryPopup] = useState(false);
 
@@ -32,7 +33,8 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, i
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const canGoBack = gameState.path.length > 1 && (gameState.allowBacktracking ?? true);
+  const allowBacktracking = gameState.allowBacktracking ?? true;
+  const canGoBack = gameState.path.length > 1 && allowBacktracking;
 
   // 로딩 상태 렌더링
   if (isLoading) {
@@ -165,7 +167,7 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, i
         <>
           {/* 오버레이 - 흐릿한 배경 */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-10 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/30 backdrop-blur-md z-40 transition-opacity"
             onClick={() => setShowHistoryPopup(false)}
           />
 
@@ -190,19 +192,30 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, i
 
                 return (
                   <div key={`history-${index}`} className="flex items-center">
-                    <span
-                      className={`text-sm px-2 py-1 rounded ${
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!allowBacktracking) return;
+                        onJumpToNode(docId);
+                        setShowHistoryPopup(false);
+                      }}
+                      disabled={!allowBacktracking || isCurrent}
+                      className={`text-sm px-2 py-1 rounded transition-colors ${
                         isStart
                           ? 'bg-gray-100 text-gray-700 font-medium'
                           : isCurrent
                           ? 'bg-red-50 text-red-600 font-bold'
                           : isGoal
                           ? 'bg-green-50 text-green-600 font-bold'
-                          : 'bg-gray-50 text-gray-600'
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      } ${
+                        !allowBacktracking || isCurrent
+                          ? 'cursor-not-allowed opacity-70'
+                          : 'cursor-pointer'
                       }`}
                     >
                       {doc?.title || 'unknown'}
-                    </span>
+                    </button>
                     {index < gameState.path.length - 1 && (
                       <span className="text-gray-400 mx-1">→</span>
                     )}

@@ -10,6 +10,7 @@ export interface GameState {
   goalDocId: string | null;
   currentDocId: string | null;
   path: string[]; // Stack of document IDs visited
+  historyLog: string[]; // Full navigation log including backtracking steps
   moves: number;
   startTime: number | null;
   endTime?: number;
