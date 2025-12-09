@@ -37,6 +37,8 @@ const initialState: GameState & GameSettings = {
   status: 'idle',
   allowBacktracking: true,
   gameMode: 'challenge',
+  endTime: undefined,
+  score: undefined,
 };
 
 const branchPalette = ['#6366f1', '#f97316', '#22c55e', '#ec4899', '#06b6d4', '#14b8a6'];
@@ -95,8 +97,9 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       id: mainBranchId,
       parentIndex: 0,
       nodes: [scenario.start],
+      nodeOrders: [0], // 시작 노드는 order 0
       color: branchPalette[0],
-    } as const;
+    };
 
     set({
       startDocId: scenario.start,
@@ -127,9 +130,14 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       return;
     }
 
+    const newMoves = state.moves + 1;
     const branches = state.branches.map(branch =>
       branch.id === activeBranchId
-        ? { ...branch, nodes: [...branch.nodes, nodeId] }
+        ? {
+            ...branch,
+            nodes: [...branch.nodes, nodeId],
+            nodeOrders: [...(branch.nodeOrders || []), newMoves]
+          }
         : branch
     );
     const activeBranch = branches.find(branch => branch.id === activeBranchId);
@@ -137,8 +145,6 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
 
     // 이미 방문한 노드를 다시 방문하는 것도 허용 (위키레이싱에서는 일반적)
     const newPath = [...state.path, nodeId];
-    const newHistory: NavigationStep[] = [...state.historyLog, { docId: nodeId, viaBacktrack: false }];
-    const newMoves = state.moves + 1;
     const newPathRefs = [...state.pathRefs, { branchId: activeBranchId, index: branchIndex }];
 
     // 목표 도달 여부 확인
@@ -146,7 +152,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       const endTime = Date.now();
       const timeTaken = Math.floor((endTime - state.startTime!) / 1000);
       const score = Math.max(1000 - (newMoves * 50) - timeTaken, 100);
-
+      
       set({
         currentDocId: nodeId,
         path: newPath,
@@ -179,73 +185,12 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
     const newPathRefs = state.pathRefs.slice(0, -1);
     const newCurrentId = newPath[newPath.length - 1];
 
+    
     set({
       currentDocId: newCurrentId,
       path: newPath,
       pathRefs: newPathRefs,
       activeBranchId: newPathRefs[newPathRefs.length - 1]?.branchId ?? state.activeBranchId,
-      moves: state.moves + 1, // 뒤로가기도 이동 횟수에 포함
-      historyLog: [...state.historyLog, { docId: newCurrentId, viaBacktrack: true }],
-    });
-  },
-
-  jumpToNode: (nodeId) => {
-    const state = get();
-    if (state.status !== 'playing') return;
-
-    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
-    if (!state.allowBacktracking) return;
-
-    const targetIndex = state.path.indexOf(nodeId);
-    // 경로에 없는 노드거나 이미 현재 노드면 무시
-    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
-
-    const newPath = state.path.slice(0, targetIndex + 1);
-
-    set({
-      currentDocId: nodeId,
-      path: newPath,
-      moves: state.moves + 1,
-      historyLog: [...state.historyLog, { docId: nodeId, viaBacktrack: true }],
-    });
-  },
-
-  jumpToNode: (nodeId) => {
-    const state = get();
-    if (state.status !== 'playing') return;
-
-    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
-    if (!state.allowBacktracking) return;
-
-    const targetIndex = state.path.indexOf(nodeId);
-    // 경로에 없는 노드거나 이미 현재 노드면 무시
-    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
-
-    const newPath = state.path.slice(0, targetIndex + 1);
-
-    set({
-      currentDocId: nodeId,
-      path: newPath,
-      moves: state.moves + 1,
-    });
-  },
-
-  jumpToNode: (nodeId) => {
-    const state = get();
-    if (state.status !== 'playing') return;
-
-    // 역링크 허용이 꺼져있으면 특정 지점으로 점프 불가
-    if (!state.allowBacktracking) return;
-
-    const targetIndex = state.path.indexOf(nodeId);
-    // 경로에 없는 노드거나 이미 현재 노드면 무시
-    if (targetIndex === -1 || targetIndex === state.path.length - 1) return;
-
-    const newPath = state.path.slice(0, targetIndex + 1);
-
-    set({
-      currentDocId: nodeId,
-      path: newPath,
       moves: state.moves + 1,
     });
   },
@@ -286,13 +231,15 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
 
     const newBranchId = createBranchId();
     const color = branchPalette[state.branches.length % branchPalette.length];
+    const newMoves = state.moves + 1;
     const newBranch = {
       id: newBranchId,
       parentId: branchId,
       parentIndex: nodeIndex,
       nodes: [forkDocId],
+      nodeOrders: [newMoves], // 분기 시작 노드의 order
       color,
-    } as const;
+    };
 
     set({
       currentDocId: forkDocId,
@@ -300,7 +247,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       pathRefs,
       branches: [...state.branches, newBranch],
       activeBranchId: newBranchId,
-      moves: state.moves + 1,
+      moves: newMoves,
     });
   },
 

@@ -27,14 +27,24 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
     const nodeHeight = 45; // 노드 높이
     const minGap = 30; // 노드 간 최소 간격
 
+    // 안정적인 랜덤 시드 사용 (노드 ID 기반)
+    const getStableRandom = (nodeId: string, seed: number) => {
+      let hash = 0;
+      for (let i = 0; i < nodeId.length; i++) {
+        hash = ((hash << 5) - hash) + nodeId.charCodeAt(i) + seed;
+        hash |= 0;
+      }
+      return Math.abs(Math.sin(hash)) * 0.7 + 0.15; // 15-85% 범위
+    };
+
     childNodes.forEach((node, index) => {
       let attempts = 0;
       let position: NodePosition | null = null;
 
       // 겹치지 않는 위치를 찾을 때까지 시도
       while (attempts < 200 && !position) {
-        const x = Math.random() * 70 + 15; // 15-85% 범위
-        const y = Math.random() * 70 + 15; // 15-85% 범위
+        const x = getStableRandom(node.id, attempts * 2) * 100;
+        const y = getStableRandom(node.id, attempts * 2 + 1) * 100;
 
         // 다른 노드들과 겹치는지 확인 (사각형 충돌 검사)
         const overlaps = positions.some(p => {
@@ -79,7 +89,7 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
     });
 
     return positions;
-  }, [childNodes]);
+  }, [childNodes.map(n => n.id).join(',')]);
 
 
   return (

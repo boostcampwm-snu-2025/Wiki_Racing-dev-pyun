@@ -50,9 +50,50 @@ export function WikiRaceGame() {
 
   useEffect(() => {
     if (status === 'playing' || status === 'finished') {
-      updateVisualNodes();
+      const { currentDocId, startDocId, goalDocId, path } = gameState;
+      if (!currentDocId) return;
+
+      const currentDoc = mockWikiDocuments[currentDocId];
+      if (!currentDoc) return;
+
+      const nodes: VisualNode[] = [];
+
+      nodes.push({
+        id: currentDoc.id,
+        title: currentDoc.title,
+        x: 0,
+        y: 0,
+        depth: 0,
+        isInPath: true,
+        isStart: currentDoc.id === startDocId,
+        isGoal: currentDoc.id === goalDocId,
+        isCurrent: true
+      });
+
+      const angleStep = (Math.PI * 2) / currentDoc.links.length;
+      currentDoc.links.forEach((linkId, index) => {
+        const linkedDoc = mockWikiDocuments[linkId];
+        if (linkedDoc) {
+          const angle = angleStep * index - Math.PI / 2;
+          const distance = 250;
+
+          nodes.push({
+            id: linkedDoc.id,
+            title: linkedDoc.title,
+            x: Math.cos(angle) * distance,
+            y: Math.sin(angle) * distance,
+            depth: 1,
+            isInPath: path.includes(linkedDoc.id),
+            isStart: linkedDoc.id === startDocId,
+            isGoal: linkedDoc.id === goalDocId,
+            isCurrent: false
+          });
+        }
+      });
+
+      setVisualNodes(nodes);
     }
-  }, [gameState.currentDocId, status]);
+  }, [gameState, status]);
 
   const handleStartGame = () => {
     setShowLeaderboard(false);
@@ -74,51 +115,6 @@ export function WikiRaceGame() {
     await new Promise(resolve => setTimeout(resolve, 300));
     navigateTo(nodeId);
     setIsLoadingNodes(false);
-  };
-
-  const updateVisualNodes = () => {
-    const { currentDocId, startDocId, goalDocId, path } = gameState;
-    if (!currentDocId) return;
-
-    const currentDoc = mockWikiDocuments[currentDocId];
-    if (!currentDoc) return;
-
-    const nodes: VisualNode[] = [];
-    
-    nodes.push({
-      id: currentDoc.id,
-      title: currentDoc.title,
-      x: 0,
-      y: 0,
-      depth: 0,
-      isInPath: true,
-      isStart: currentDoc.id === startDocId,
-      isGoal: currentDoc.id === goalDocId,
-      isCurrent: true
-    });
-
-    const angleStep = (Math.PI * 2) / currentDoc.links.length;
-    currentDoc.links.forEach((linkId, index) => {
-      const linkedDoc = mockWikiDocuments[linkId];
-      if (linkedDoc) {
-        const angle = angleStep * index - Math.PI / 2;
-        const distance = 250;
-        
-        nodes.push({
-          id: linkedDoc.id,
-          title: linkedDoc.title,
-          x: Math.cos(angle) * distance,
-          y: Math.sin(angle) * distance,
-          depth: 1,
-          isInPath: path.includes(linkedDoc.id),
-          isStart: linkedDoc.id === startDocId,
-          isGoal: linkedDoc.id === goalDocId,
-          isCurrent: false
-        });
-      }
-    });
-
-    setVisualNodes(nodes);
   };
 
   if (showLeaderboard) {
@@ -237,6 +233,7 @@ export function WikiRaceGame() {
             goalDoc={goalDoc}
             onBack={goBack}
             onJumpToNode={jumpToNode}
+            onBranchFromHistory={branchFromHistory}
           />
 
           <div className="flex flex-col xl:flex-row min-h-[620px] overflow-hidden">

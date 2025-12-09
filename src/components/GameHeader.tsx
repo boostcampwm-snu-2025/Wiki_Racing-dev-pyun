@@ -11,10 +11,11 @@ interface GameHeaderProps {
   goalDoc: WikiDocument;
   onBack: () => void;
   onJumpToNode: (nodeId: string) => void;
+  onBranchFromHistory?: (branchId: string, nodeIndex: number, docId: string) => void;
   isLoading?: boolean;
 }
 
-export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, onJumpToNode, isLoading = false }: GameHeaderProps) {
+export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, onJumpToNode, onBranchFromHistory, isLoading = false }: GameHeaderProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHistoryPopup, setShowHistoryPopup] = useState(false);
 
@@ -167,8 +168,9 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, o
         <>
           {/* 오버레이 - 흐릿한 배경 */}
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+            className="fixed inset-0 bg-black/20 backdrop-blur-md z-40 transition-all"
             onClick={() => setShowHistoryPopup(false)}
+            style={{ backdropFilter: 'blur(8px)' }}
           />
 
           {/* 팝업 */}
@@ -204,7 +206,15 @@ export function GameHeader({ gameState, startDoc, currentDoc, goalDoc, onBack, o
                       type="button"
                       onClick={() => {
                         if (!allowBacktracking) return;
-                        onJumpToNode(docId);
+
+                        // pathRefs에서 해당 인덱스의 branchId와 nodeIndex 찾기
+                        if (onBranchFromHistory && gameState.pathRefs && gameState.pathRefs[index]) {
+                          const ref = gameState.pathRefs[index];
+                          onBranchFromHistory(ref.branchId, ref.index, docId);
+                        } else {
+                          // fallback: 이전 방식 사용
+                          onJumpToNode(docId);
+                        }
                         setShowHistoryPopup(false);
                       }}
                       disabled={!allowBacktracking || isCurrent}

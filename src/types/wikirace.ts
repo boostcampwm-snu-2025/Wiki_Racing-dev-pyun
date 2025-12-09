@@ -22,6 +22,7 @@ export interface GameState {
     parentId?: string;
     parentIndex: number;
     nodes: string[];
+    nodeOrders?: number[]; // 각 노드가 생성된 글로벌 순서 (moves 기준)
     color: string;
   }[];
   activeBranchId: string | null;
@@ -30,6 +31,7 @@ export interface GameState {
   endTime?: number;
   score?: number;
   status: 'idle' | 'playing' | 'finished';
+  allowBacktracking: boolean;
 }
 
 export interface NavigationStep {
