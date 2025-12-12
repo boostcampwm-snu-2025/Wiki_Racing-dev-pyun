@@ -49,6 +49,14 @@ export interface LeaderboardEntry {
   moves: number;
   time: number;
   path: string[];
+  branches?: {
+    id: string;
+    parentId?: string;
+    parentIndex: number;
+    nodes: string[];
+    color: string;
+  }[];
+  pathRefs?: { branchId: string; index: number }[];
   isCurrentUser?: boolean;
 }
 

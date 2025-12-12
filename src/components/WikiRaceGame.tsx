@@ -6,7 +6,8 @@ import { WikiNodeTree } from './WikiNodeTree';
 import { GameHeader } from './GameHeader';
 import { PathHistory } from './PathHistory';
 import { GameComplete } from './GameComplete';
-import { Leaderboard } from './Leaderboard';
+import { Leaderboard, getMockLeaderboard } from './Leaderboard';
+import { NameInputModal } from './NameInputModal';
 import { Button } from './ui/button';
 import { Play, Trophy } from 'lucide-react';
 
@@ -23,6 +24,7 @@ export function WikiRaceGame() {
     gameMode,
     setAllowBacktracking,
     setGameMode,
+    setPlayerNickname,
     returnToMenu
   } = gameState;
 
@@ -30,6 +32,8 @@ export function WikiRaceGame() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showPathHistory, setShowPathHistory] = useState(false);
   const [isLoadingNodes, setIsLoadingNodes] = useState(false);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [playerRank, setPlayerRank] = useState<number | null>(null);
 
   const leaderboardEntry = gameState.path.length
     ? {
@@ -44,9 +48,31 @@ export function WikiRaceGame() {
             : gameState.startTime
               ? Math.floor((Date.now() - gameState.startTime) / 1000)
               : 0,
-        nickname: '내 플레이'
+        nickname: gameState.playerNickname || '내 플레이'
       }
     : undefined;
+
+  // 게임 완료 시 10위 안에 드는지 확인
+  useEffect(() => {
+    if (status === 'finished' && gameState.score && !gameState.playerNickname) {
+      // 리더보드에서 점수 목록 추출
+      const currentLeaderboard = getMockLeaderboard();
+      const leaderboardScores = currentLeaderboard.map(entry => entry.score);
+      const tenthScore = leaderboardScores[leaderboardScores.length - 1] || 0;
+
+      // 10위 점수보다 높으면 이름 입력 모달 표시
+      if (gameState.score > tenthScore) {
+        // 순위 계산
+        let rank = 1;
+        for (const score of leaderboardScores) {
+          if (gameState.score > score) break;
+          rank++;
+        }
+        setPlayerRank(rank);
+        setShowNameInput(true);
+      }
+    }
+  }, [status, gameState.score, gameState.playerNickname]);
 
   useEffect(() => {
     if (status === 'playing' || status === 'finished') {
@@ -109,6 +135,13 @@ export function WikiRaceGame() {
     setShowLeaderboard(true);
   };
 
+  const handleNameSubmit = (nickname: string) => {
+    if (nickname) {
+      setPlayerNickname(nickname);
+    }
+    setShowNameInput(false);
+  };
+
   const handleNodeClick = async (nodeId: string) => {
     setIsLoadingNodes(true);
     // 로딩 UI를 보여주기 위한 짧은 지연
@@ -119,7 +152,7 @@ export function WikiRaceGame() {
 
   if (showLeaderboard) {
     return (
-      <div className="w-full h-screen flex flex-col bg-gray-50">
+      <div className="w-full min-h-screen flex flex-col bg-gray-50">
         <div className="bg-white border-b p-4 flex items-center justify-between shadow-sm">
           <h1 className="text-gray-900">위키레이싱 - 리더보드</h1>
           <Button onClick={() => setShowLeaderboard(false)} variant="outline">
@@ -139,7 +172,7 @@ export function WikiRaceGame() {
           <Button
             onClick={() => setShowLeaderboard(true)}
             variant="outline"
-            className="bg-gray-800 text-white hover:bg-gray-700 border-gray-800"
+            className="bg-gray-100 text-gray-900 hover:bg-gray-400 hover:text-gray-900 border-gray-300 transition-colors duration-300 ease-in-out"
           >
             <Trophy className="w-4 h-4 mr-2" />
             Leaderboard
@@ -209,12 +242,22 @@ export function WikiRaceGame() {
 
   if (status === 'finished') {
     return (
-      <GameComplete
-        gameState={gameState}
-        onRestart={handleStartGame}
-        onReturnHome={handleReturnHome}
-        onShowLeaderboard={handleShowLeaderboard}
-      />
+      <>
+        <GameComplete
+          gameState={gameState}
+          onRestart={handleStartGame}
+          onReturnHome={handleReturnHome}
+          onShowLeaderboard={handleShowLeaderboard}
+        />
+        {showNameInput && playerRank && gameState.score && (
+          <NameInputModal
+            open={showNameInput}
+            rank={playerRank}
+            score={gameState.score}
+            onSubmit={handleNameSubmit}
+          />
+        )}
+      </>
     );
   }
 

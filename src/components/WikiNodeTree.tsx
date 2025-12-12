@@ -20,6 +20,20 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
   // 중앙 노드는 표시하지 않음 (헤더에 이미 표시됨)
   const childNodes = nodes.filter(n => !n.isCurrent);
 
+  // 목표 노드 펄스 애니메이션을 위한 스타일
+  const goalPulseStyle = `
+    @keyframes goalPulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 10px 25px -5px rgb(16 185 129 / 0.3), 0 8px 10px -6px rgb(16 185 129 / 0.3);
+      }
+    }
+  `;
+
   // 노드 위치를 계산 - 겹치지 않도록 배치
   const nodePositions = useMemo(() => {
     const positions: NodePosition[] = [];
@@ -94,6 +108,9 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
 
   return (
     <div className="w-full h-full relative overflow-hidden rounded-xl bg-white/60 backdrop-blur-sm">
+      {/* 목표 노드 펄스 애니메이션 스타일 */}
+      <style>{goalPulseStyle}</style>
+
       {/* 노드들을 자유롭게 배치 */}
       {childNodes.map((node, index) => {
         const position = nodePositions.find(p => p.id === node.id);
@@ -108,7 +125,8 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
             style={{
               left: `${position.x}%`,
               top: `${position.y}%`,
-              transform: 'translate(-50%, -50%)'
+              transform: 'translate(-50%, -50%)',
+              animation: node.isGoal ? 'goalPulse 2s ease-in-out infinite' : undefined
             }}
           >
             {isLoading ? (
@@ -117,13 +135,13 @@ export function WikiNodeTree({ nodes, onNodeClick, isLoading = false }: WikiNode
             ) : (
               // 로딩 완료 후 실제 노드 표시
               <div
-                className={`px-4 py-2 rounded-lg cursor-pointer transition-all shadow-sm border whitespace-nowrap ${
+                className={`px-4 py-2 rounded-lg cursor-pointer transition-all border whitespace-nowrap ${
                   node.isGoal
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 shadow-sm'
                     : isVisited
-                    ? 'bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100'
-                    : 'bg-slate-100 border-slate-200 text-slate-900 hover:bg-slate-200'
-                } hover:shadow-md hover:-translate-y-0.5`}
+                    ? 'bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100 shadow-sm'
+                    : 'bg-slate-100 border-slate-200 text-slate-900 hover:bg-slate-200 shadow-sm'
+                } ${!node.isGoal ? 'hover:shadow-md hover:-translate-y-0.5' : ''}`}
                 onClick={() => onNodeClick(node.id)}
               >
                 <div

@@ -8,6 +8,7 @@ import { getRandomScenario, mockWikiDocuments } from './data/mockWikiData';
 interface GameSettings {
   allowBacktracking: boolean;
   gameMode: 'easy' | 'challenge';
+  playerNickname?: string;
 }
 
 /**
@@ -22,6 +23,7 @@ interface GameActions {
   returnToMenu: () => void;
   setAllowBacktracking: (allow: boolean) => void;
   setGameMode: (mode: 'easy' | 'challenge') => void;
+  setPlayerNickname: (nickname: string) => void;
 }
 
 const initialState: GameState & GameSettings = {
@@ -259,6 +261,10 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
     set({ gameMode: mode });
   },
 
+  setPlayerNickname: (nickname) => {
+    set({ playerNickname: nickname });
+  },
+
   returnToMenu: () => {
     const state = get();
     set({
@@ -266,6 +272,7 @@ export const useGameStore = create<GameState & GameSettings & GameActions>((set,
       allowBacktracking: state.allowBacktracking,
       gameMode: state.gameMode,
       status: 'idle',
+      playerNickname: undefined,
     });
   },
 }));

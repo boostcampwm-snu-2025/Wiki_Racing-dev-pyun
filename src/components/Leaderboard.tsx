@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { LeaderboardEntry } from '../types/wikirace';
 import { Trophy, Eye, Clock, Footprints } from 'lucide-react';
 import { Button } from './ui/button';
@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { ScrollArea } from './ui/scroll-area';
 import { PathReplay } from './PathReplay';
 import { mockWikiDocuments } from '../data/mockWikiData';
+import initialLeaderboardData from '../data/leaderboard.json';
 
 interface LeaderboardProps {
   currentRun?: {
@@ -19,8 +20,40 @@ interface LeaderboardProps {
   };
 }
 
-// Mock leaderboard data
-const mockLeaderboard: LeaderboardEntry[] = [
+// localStorage 키
+const LEADERBOARD_STORAGE_KEY = 'wikirace_leaderboard';
+
+// localStorage에서 리더보드 데이터 로드
+const loadLeaderboard = (): LeaderboardEntry[] => {
+  try {
+    const stored = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Failed to load leaderboard from localStorage:', error);
+  }
+  // localStorage에 데이터가 없으면 초기 데이터 사용
+  return initialLeaderboardData as LeaderboardEntry[];
+};
+
+// localStorage에 리더보드 데이터 저장
+const saveLeaderboard = (data: LeaderboardEntry[]): void => {
+  try {
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save leaderboard to localStorage:', error);
+  }
+};
+
+// 초기 리더보드 데이터 로드 함수 export (다른 컴포넌트에서 사용)
+export const getMockLeaderboard = (): LeaderboardEntry[] => loadLeaderboard();
+
+// 초기 리더보드 데이터 (export for backwards compatibility)
+export const mockLeaderboard: LeaderboardEntry[] = loadLeaderboard();
+
+// 초기 mock 데이터 (삭제 예정, 호환성 유지)
+const _deprecatedMockData: LeaderboardEntry[] = [
   {
     rank: 1,
     nickname: '위키마스터',
@@ -30,7 +63,21 @@ const mockLeaderboard: LeaderboardEntry[] = [
     score: 920,
     moves: 4,
     time: 32,
-    path: ['doc-1', 'doc-5', 'doc-14', 'doc-27']
+    path: ['doc-1', 'doc-5', 'doc-14', 'doc-27'],
+    branches: [
+      {
+        id: 'main',
+        parentIndex: 0,
+        nodes: ['doc-1', 'doc-5', 'doc-14', 'doc-27'],
+        color: '#6366f1'
+      }
+    ],
+    pathRefs: [
+      { branchId: 'main', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'main', index: 2 },
+      { branchId: 'main', index: 3 }
+    ]
   },
   {
     rank: 2,
@@ -39,9 +86,32 @@ const mockLeaderboard: LeaderboardEntry[] = [
     goalDoc: '세종대왕',
     difficulty: '쉬움',
     score: 850,
-    moves: 5,
+    moves: 8,
     time: 45,
-    path: ['doc-1', 'doc-3', 'doc-10', 'doc-9']
+    path: ['doc-1', 'doc-3', 'doc-7', 'doc-3', 'doc-10', 'doc-9'],
+    branches: [
+      {
+        id: 'main',
+        parentIndex: 0,
+        nodes: ['doc-1', 'doc-3', 'doc-10', 'doc-9'],
+        color: '#6366f1'
+      },
+      {
+        id: 'branch-1',
+        parentId: 'main',
+        parentIndex: 1,
+        nodes: ['doc-7'],
+        color: '#ec4899'
+      }
+    ],
+    pathRefs: [
+      { branchId: 'main', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'branch-1', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'main', index: 2 },
+      { branchId: 'main', index: 3 }
+    ]
   },
   {
     rank: 3,
@@ -50,9 +120,43 @@ const mockLeaderboard: LeaderboardEntry[] = [
     goalDoc: '음악',
     difficulty: '보통',
     score: 780,
-    moves: 7,
+    moves: 12,
     time: 58,
-    path: ['doc-2', 'doc-7', 'doc-17', 'doc-9', 'doc-10', 'doc-3', 'doc-14', 'doc-27', 'doc-40']
+    path: ['doc-2', 'doc-7', 'doc-17', 'doc-7', 'doc-15', 'doc-7', 'doc-2', 'doc-9', 'doc-14', 'doc-27'],
+    branches: [
+      {
+        id: 'main',
+        parentIndex: 0,
+        nodes: ['doc-2', 'doc-7', 'doc-9', 'doc-14', 'doc-27'],
+        color: '#6366f1'
+      },
+      {
+        id: 'branch-1',
+        parentId: 'main',
+        parentIndex: 1,
+        nodes: ['doc-17'],
+        color: '#ec4899'
+      },
+      {
+        id: 'branch-2',
+        parentId: 'main',
+        parentIndex: 1,
+        nodes: ['doc-15'],
+        color: '#10b981'
+      }
+    ],
+    pathRefs: [
+      { branchId: 'main', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'branch-1', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'branch-2', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'main', index: 0 },
+      { branchId: 'main', index: 2 },
+      { branchId: 'main', index: 3 },
+      { branchId: 'main', index: 4 }
+    ]
   },
   {
     rank: 4,
@@ -61,9 +165,53 @@ const mockLeaderboard: LeaderboardEntry[] = [
     goalDoc: '과학',
     difficulty: '어려움',
     score: 720,
-    moves: 8,
+    moves: 15,
     time: 72,
-    path: ['doc-1', 'doc-2', 'doc-8', 'doc-19', 'doc-33', 'doc-47']
+    path: ['doc-1', 'doc-2', 'doc-8', 'doc-2', 'doc-12', 'doc-2', 'doc-1', 'doc-5', 'doc-19', 'doc-5', 'doc-1', 'doc-33', 'doc-47'],
+    branches: [
+      {
+        id: 'main',
+        parentIndex: 0,
+        nodes: ['doc-1', 'doc-2', 'doc-33', 'doc-47'],
+        color: '#6366f1'
+      },
+      {
+        id: 'branch-1',
+        parentId: 'main',
+        parentIndex: 1,
+        nodes: ['doc-8'],
+        color: '#ec4899'
+      },
+      {
+        id: 'branch-2',
+        parentId: 'main',
+        parentIndex: 1,
+        nodes: ['doc-12'],
+        color: '#10b981'
+      },
+      {
+        id: 'branch-3',
+        parentId: 'main',
+        parentIndex: 0,
+        nodes: ['doc-5', 'doc-19'],
+        color: '#f59e0b'
+      }
+    ],
+    pathRefs: [
+      { branchId: 'main', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'branch-1', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'branch-2', index: 0 },
+      { branchId: 'main', index: 1 },
+      { branchId: 'main', index: 0 },
+      { branchId: 'branch-3', index: 0 },
+      { branchId: 'branch-3', index: 1 },
+      { branchId: 'branch-3', index: 0 },
+      { branchId: 'main', index: 0 },
+      { branchId: 'main', index: 2 },
+      { branchId: 'main', index: 3 }
+    ]
   },
   {
     rank: 5,
@@ -136,6 +284,7 @@ const mockLeaderboard: LeaderboardEntry[] = [
 export function Leaderboard({ currentRun }: LeaderboardProps) {
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null);
   const [showReplay, setShowReplay] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(loadLeaderboard());
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -164,27 +313,85 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
     }
   };
 
+  // 난이도 자동 계산 함수
+  const calculateDifficulty = (moves: number, score: number): string => {
+    // 점수가 높고 이동 횟수가 적으면 쉬움
+    if (score >= 800 && moves <= 5) return '쉬움';
+    // 점수가 낮거나 이동 횟수가 많으면 어려움
+    if (score < 600 || moves >= 13) return '어려움';
+    // 그 외는 보통
+    return '보통';
+  };
+
   const entries: LeaderboardEntry[] = (() => {
-    if (!currentRun || currentRun.path.length === 0) return mockLeaderboard;
+    if (!currentRun || currentRun.path.length === 0) return leaderboardData;
 
     const startTitle = currentRun.startDocId ? mockWikiDocuments[currentRun.startDocId]?.title : undefined;
     const goalTitle = currentRun.goalDocId ? mockWikiDocuments[currentRun.goalDocId]?.title : undefined;
 
+    const moves = currentRun.moves ?? Math.max(currentRun.path.length - 1, 0);
+    const score = currentRun.score ?? 0;
+
     const currentEntry: LeaderboardEntry = {
-      rank: 0,
+      rank: 0, // 임시 순위, 아래에서 재계산
       nickname: currentRun.nickname ?? '내 경로',
       startDoc: startTitle ?? '시작',
       goalDoc: goalTitle ?? '목표',
-      difficulty: '현재 플레이',
-      score: currentRun.score ?? 0,
-      moves: currentRun.moves ?? Math.max(currentRun.path.length - 1, 0),
+      difficulty: calculateDifficulty(moves, score),
+      score,
+      moves,
       time: currentRun.time ?? 0,
       path: currentRun.path,
       isCurrentUser: true
     };
 
-    return [currentEntry, ...mockLeaderboard];
+    // 모든 엔트리를 점수 기준으로 정렬하고 순위 재계산
+    const allEntries = [currentEntry, ...leaderboardData];
+    allEntries.sort((a, b) => b.score - a.score);
+
+    // 순위 재부여
+    return allEntries.map((entry, index) => ({
+      ...entry,
+      rank: index + 1
+    }));
   })();
+
+  // 사용자가 닉네임을 입력했을 때 리더보드 업데이트
+  useEffect(() => {
+    if (currentRun && currentRun.nickname && currentRun.score) {
+      const startTitle = currentRun.startDocId ? mockWikiDocuments[currentRun.startDocId]?.title : undefined;
+      const goalTitle = currentRun.goalDocId ? mockWikiDocuments[currentRun.goalDocId]?.title : undefined;
+      const moves = currentRun.moves ?? Math.max(currentRun.path.length - 1, 0);
+      const score = currentRun.score;
+
+      const newEntry: LeaderboardEntry = {
+        rank: 0,
+        nickname: currentRun.nickname,
+        startDoc: startTitle ?? '시작',
+        goalDoc: goalTitle ?? '목표',
+        difficulty: calculateDifficulty(moves, score),
+        score,
+        moves,
+        time: currentRun.time ?? 0,
+        path: currentRun.path,
+      };
+
+      // 기존 데이터와 합쳐서 정렬
+      const updatedData = [...leaderboardData, newEntry];
+      updatedData.sort((a, b) => b.score - a.score);
+
+      // 상위 10개만 유지
+      const top10 = updatedData.slice(0, 10).map((entry, index) => ({
+        ...entry,
+        rank: index + 1,
+        isCurrentUser: entry.nickname === currentRun.nickname ? true : undefined
+      }));
+
+      // localStorage에 저장
+      saveLeaderboard(top10);
+      setLeaderboardData(top10);
+    }
+  }, [currentRun?.nickname, currentRun?.score]);
 
   return (
     <>
@@ -280,7 +487,7 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
       </ScrollArea>
 
       <Dialog open={showReplay} onOpenChange={setShowReplay}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>
               {selectedEntry?.nickname}님의 경로 - {selectedEntry?.score}점

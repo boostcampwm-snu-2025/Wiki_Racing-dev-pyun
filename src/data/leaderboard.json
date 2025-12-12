@@ -1,0 +1,183 @@
+[
+  {
+    "rank": 1,
+    "nickname": "위키마스터",
+    "startDoc": "대한민국",
+    "goalDoc": "K-POP",
+    "difficulty": "보통",
+    "score": 920,
+    "moves": 4,
+    "time": 32,
+    "path": ["doc-1", "doc-5", "doc-14", "doc-27"],
+    "branches": [
+      {
+        "id": "main",
+        "parentIndex": 0,
+        "nodes": ["doc-1", "doc-5", "doc-14", "doc-27"],
+        "color": "#6366f1"
+      }
+    ],
+    "pathRefs": [
+      { "branchId": "main", "index": 0 },
+      { "branchId": "main", "index": 1 },
+      { "branchId": "main", "index": 2 },
+      { "branchId": "main", "index": 3 }
+    ]
+  },
+  {
+    "rank": 2,
+    "nickname": "링크헌터",
+    "startDoc": "대한민국",
+    "goalDoc": "세종대왕",
+    "difficulty": "쉬움",
+    "score": 850,
+    "moves": 8,
+    "time": 45,
+    "path": ["doc-1", "doc-3", "doc-7", "doc-3", "doc-10", "doc-9"],
+    "branches": [
+      {
+        "id": "main",
+        "parentIndex": 0,
+        "nodes": ["doc-1", "doc-3", "doc-10", "doc-9"],
+        "color": "#6366f1"
+      },
+      {
+        "id": "branch-1",
+        "parentId": "main",
+        "parentIndex": 1,
+        "nodes": ["doc-7"],
+        "color": "#ec4899"
+      }
+    ],
+    "pathRefs": [
+      { "branchId": "main", "index": 0 },
+      { "branchId": "main", "index": 1 },
+      { "branchId": "branch-1", "index": 0 },
+      { "branchId": "main", "index": 1 },
+      { "branchId": "main", "index": 2 },
+      { "branchId": "main", "index": 3 }
+    ]
+  },
+  {
+    "rank": 3,
+    "nickname": "탐험가",
+    "startDoc": "서울",
+    "goalDoc": "음악",
+    "difficulty": "보통",
+    "score": 780,
+    "moves": 12,
+    "time": 58,
+    "path": ["doc-2", "doc-7", "doc-17", "doc-7", "doc-15", "doc-7", "doc-2", "doc-9", "doc-14", "doc-27"],
+    "branches": [
+      {
+        "id": "main",
+        "parentIndex": 0,
+        "nodes": ["doc-2", "doc-7", "doc-9", "doc-14", "doc-27"],
+        "color": "#6366f1"
+      },
+      {
+        "id": "branch-1",
+        "parentId": "main",
+        "parentIndex": 1,
+        "nodes": ["doc-17", "doc-15"],
+        "color": "#ec4899"
+      },
+      {
+        "id": "branch-2",
+        "parentId": "branch-1",
+        "parentIndex": 1,
+        "nodes": ["doc-15"],
+        "color": "#10b981"
+      }
+    ],
+    "pathRefs": [
+      { "branchId": "main", "index": 0 },
+      { "branchId": "main", "index": 1 },
+      { "branchId": "branch-1", "index": 0 },
+      { "branchId": "main", "index": 1 },
+      { "branchId": "branch-1", "index": 1 },
+      { "branchId": "main", "index": 1 },
+      { "branchId": "main", "index": 0 },
+      { "branchId": "main", "index": 2 },
+      { "branchId": "main", "index": 3 },
+      { "branchId": "main", "index": 4 }
+    ]
+  },
+  {
+    "rank": 4,
+    "nickname": "한글파워",
+    "startDoc": "강남스타일",
+    "goalDoc": "과학",
+    "difficulty": "쉬움",
+    "score": 720,
+    "moves": 9,
+    "time": 62,
+    "path": ["doc-5", "doc-10", "doc-18", "doc-31", "doc-45"]
+  },
+  {
+    "rank": 5,
+    "nickname": "빠른손",
+    "startDoc": "김치",
+    "goalDoc": "항공",
+    "difficulty": "보통",
+    "score": 680,
+    "moves": 10,
+    "time": 75,
+    "path": ["doc-4", "doc-12", "doc-24", "doc-37", "doc-51", "doc-64"]
+  },
+  {
+    "rank": 6,
+    "nickname": "사냥꾼",
+    "startDoc": "한강",
+    "goalDoc": "기술",
+    "difficulty": "어려움",
+    "score": 640,
+    "moves": 10,
+    "time": 88,
+    "path": ["doc-2", "doc-7", "doc-17", "doc-30", "doc-44"]
+  },
+  {
+    "rank": 7,
+    "nickname": "노련한탐험가",
+    "startDoc": "대한민국",
+    "goalDoc": "항구",
+    "difficulty": "보통",
+    "score": 590,
+    "moves": 11,
+    "time": 95,
+    "path": ["doc-1", "doc-4", "doc-12", "doc-23", "doc-36", "doc-50", "doc-60", "doc-66", "doc-1", "doc-39", "doc-53", "doc-62"]
+  },
+  {
+    "rank": 8,
+    "nickname": "초보모험가",
+    "startDoc": "김치",
+    "goalDoc": "대학",
+    "difficulty": "쉬움",
+    "score": 550,
+    "moves": 12,
+    "time": 105,
+    "path": ["doc-4", "doc-12", "doc-24", "doc-37", "doc-51", "doc-2", "doc-35"]
+  },
+  {
+    "rank": 9,
+    "nickname": "꾸준러",
+    "startDoc": "한강",
+    "goalDoc": "전통 악기",
+    "difficulty": "어려움",
+    "score": 480,
+    "moves": 14,
+    "time": 128,
+    "path": ["doc-6", "doc-15", "doc-28", "doc-2", "doc-7", "doc-17", "doc-9", "doc-20", "doc-1", "doc-5", "doc-14", "doc-27", "doc-40", "doc-54", "doc-63"]
+  },
+  {
+    "rank": 10,
+    "nickname": "도전자",
+    "startDoc": "경복궁",
+    "goalDoc": "병원",
+    "difficulty": "보통",
+    "score": 420,
+    "moves": 15,
+    "time": 145,
+    "path": ["doc-7", "doc-17", "doc-9", "doc-20", "doc-1", "doc-2", "doc-8", "doc-6", "doc-15", "doc-28", "doc-42", "doc-55", "doc-59", "doc-49", "doc-35", "doc-61"]
+  }
+]
