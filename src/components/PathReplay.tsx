@@ -290,46 +290,54 @@ export function PathReplay({ entry }: PathReplayProps) {
         <div className="bg-white rounded-lg border p-6">
           <h3 className="text-gray-800 mb-4">경로 상세 분석</h3>
 
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded bg-indigo-500 flex items-center justify-center text-white text-[10px] font-semibold mt-1">
-                1
-              </div>
-              <div className="flex-1">
-                <div className="text-gray-700">시작 문서</div>
-                <div className="text-gray-900">{entry.startDoc}</div>
-              </div>
-            </div>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {entry.path.map((docId, index) => {
+              const doc = mockWikiDocuments[docId];
+              const isStart = index === 0;
+              const isGoal = index === entry.path.length - 1;
 
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded bg-indigo-500 flex items-center justify-center text-white text-[10px] font-semibold mt-1">
-                {entry.path.length}
-              </div>
-              <div className="flex-1">
-                <div className="text-gray-700">목표 문서</div>
-                <div className="text-gray-900">{entry.goalDoc}</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded bg-gray-400 flex items-center justify-center text-white text-[10px] font-semibold mt-1">
-                ···
-              </div>
-              <div className="flex-1">
-                <div className="text-gray-700">경유한 문서</div>
-                <div className="text-gray-900">
-                  {entry.path.length - 2}개의 중간 문서를 거쳐 도달
+              return (
+                <div key={`path-${index}-${docId}`} className="flex items-start gap-3">
+                  <div className={`w-7 h-7 rounded flex items-center justify-center text-white text-xs font-semibold mt-1 flex-shrink-0 ${
+                    isStart ? 'bg-green-500' : isGoal ? 'bg-red-500' : 'bg-indigo-500'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className={`text-sm ${isStart || isGoal ? 'font-semibold' : ''} ${
+                      isStart ? 'text-green-700' : isGoal ? 'text-red-700' : 'text-gray-700'
+                    }`}>
+                      {isStart ? '🚀 시작 문서' : isGoal ? '🎯 목표 문서' : '📄 중간 문서'}
+                    </div>
+                    <div className="text-gray-900 font-medium">
+                      {doc?.title || '알 수 없음'}
+                    </div>
+                    <div className="text-xs text-gray-500">{docId}</div>
+                  </div>
+                  {index < entry.path.length - 1 && (
+                    <div className="text-gray-400 text-xl flex-shrink-0">↓</div>
+                  )}
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <div className="text-gray-700 mb-2">💡 전략 분석</div>
             <ul className="text-gray-600 space-y-1 text-sm">
-              <li>• 최소 이동: {entry.moves}회</li>
-              <li>• 평균 문서당 시간: {Math.round(entry.time / entry.moves)}초</li>
-              <li>• 효율성: {entry.score >= 700 ? '매우 높음' : entry.score >= 500 ? '높음' : '보통'}</li>
+              <li>• 총 이동 횟수: {entry.moves}회</li>
+              <li>• 실제 경로 길이: {entry.path.length}개 문서</li>
+              <li>• 평균 문서당 시간: {entry.moves > 0 ? Math.round(entry.time / entry.moves) : 0}초</li>
+              <li>• 효율성: {entry.score >= 700 ? '매우 높음 ⭐⭐⭐' : entry.score >= 500 ? '높음 ⭐⭐' : '보통 ⭐'}</li>
+              {hasBranches && (
+                <>
+                  <li>• 브랜치 수: {entry.branches.length}개 (탐색 시도 포함)</li>
+                  <li>• 전략 유형: 다양한 경로 탐색 후 최적 경로 선택</li>
+                </>
+              )}
+              {!hasBranches && (
+                <li>• 전략 유형: 직선 경로 (단일 경로 탐색)</li>
+              )}
             </ul>
           </div>
         </div>
