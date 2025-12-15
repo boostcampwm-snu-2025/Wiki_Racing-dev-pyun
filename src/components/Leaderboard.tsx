@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { LeaderboardEntry } from '../types/wikirace';
 import { Trophy, Eye, Clock, Footprints } from 'lucide-react';
 import { Button } from './ui/button';
@@ -17,6 +17,14 @@ interface LeaderboardProps {
     moves?: number;
     time?: number;
     nickname?: string;
+    branches?: {
+      id: string;
+      parentId?: string;
+      parentIndex: number;
+      nodes: string[];
+      color: string;
+    }[];
+    pathRefs?: { branchId: string; index: number }[];
   };
 }
 
@@ -285,6 +293,7 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null);
   const [showReplay, setShowReplay] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(loadLeaderboard());
+  const savedEntriesRef = useRef<Set<string>>(new Set());
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -332,6 +341,24 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
     const moves = currentRun.moves ?? Math.max(currentRun.path.length - 1, 0);
     const score = currentRun.score ?? 0;
 
+    // 이미 leaderboardData에 같은 엔트리가 있는지 확인
+    const alreadySaved = currentRun.nickname && leaderboardData.some(
+      entry => entry.nickname === currentRun.nickname &&
+               entry.score === score &&
+               entry.moves === moves
+    );
+
+    // 이미 저장된 경우 leaderboardData만 반환 (isCurrentUser 마킹만 추가)
+    if (alreadySaved) {
+      return leaderboardData.map((entry, index) => ({
+        ...entry,
+        rank: index + 1,
+        isCurrentUser: entry.nickname === currentRun.nickname &&
+                       entry.score === score &&
+                       entry.moves === moves ? true : undefined
+      }));
+    }
+
     const currentEntry: LeaderboardEntry = {
       rank: 0, // 임시 순위, 아래에서 재계산
       nickname: currentRun.nickname ?? '내 경로',
@@ -342,6 +369,8 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
       moves,
       time: currentRun.time ?? 0,
       path: currentRun.path,
+      branches: currentRun.branches,
+      pathRefs: currentRun.pathRefs,
       isCurrentUser: true
     };
 
@@ -359,9 +388,31 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
   // 사용자가 닉네임을 입력했을 때 리더보드 업데이트
   useEffect(() => {
     if (currentRun && currentRun.nickname && currentRun.score) {
+      const moves = currentRun.moves ?? Math.max(currentRun.path.length - 1, 0);
+
+      // 고유 키 생성 (닉네임-점수-이동횟수)
+      const entryKey = `${currentRun.nickname}-${currentRun.score}-${moves}`;
+
+      // 이미 저장한 적이 있는지 확인
+      if (savedEntriesRef.current.has(entryKey)) {
+        return;
+      }
+
+      // 이미 저장된 엔트리인지 확인 (닉네임, 점수, 이동횟수가 모두 같으면 중복으로 간주)
+      const isDuplicate = leaderboardData.some(
+        entry => entry.nickname === currentRun.nickname &&
+                 entry.score === currentRun.score &&
+                 entry.moves === moves
+      );
+
+      // 중복이면 저장하지 않음
+      if (isDuplicate) {
+        savedEntriesRef.current.add(entryKey);
+        return;
+      }
+
       const startTitle = currentRun.startDocId ? mockWikiDocuments[currentRun.startDocId]?.title : undefined;
       const goalTitle = currentRun.goalDocId ? mockWikiDocuments[currentRun.goalDocId]?.title : undefined;
-      const moves = currentRun.moves ?? Math.max(currentRun.path.length - 1, 0);
       const score = currentRun.score;
 
       const newEntry: LeaderboardEntry = {
@@ -374,6 +425,8 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
         moves,
         time: currentRun.time ?? 0,
         path: currentRun.path,
+        branches: currentRun.branches,
+        pathRefs: currentRun.pathRefs,
       };
 
       // 기존 데이터와 합쳐서 정렬
@@ -390,6 +443,9 @@ export function Leaderboard({ currentRun }: LeaderboardProps) {
       // localStorage에 저장
       saveLeaderboard(top10);
       setLeaderboardData(top10);
+
+      // 저장했다고 표시
+      savedEntriesRef.current.add(entryKey);
     }
   }, [currentRun?.nickname, currentRun?.score]);
 

@@ -48,13 +48,15 @@ export function WikiRaceGame() {
             : gameState.startTime
               ? Math.floor((Date.now() - gameState.startTime) / 1000)
               : 0,
-        nickname: gameState.playerNickname || '내 플레이'
+        nickname: gameState.playerNickname || '내 플레이',
+        branches: gameState.branches,
+        pathRefs: gameState.pathRefs
       }
     : undefined;
 
-  // 게임 완료 시 10위 안에 드는지 확인
+  // 게임 완료 시 10위 안에 드는지 확인 (도전 모드일 때만)
   useEffect(() => {
-    if (status === 'finished' && gameState.score && !gameState.playerNickname) {
+    if (status === 'finished' && gameState.score && !gameState.playerNickname && gameMode === 'challenge') {
       // 리더보드에서 점수 목록 추출
       const currentLeaderboard = getMockLeaderboard();
       const leaderboardScores = currentLeaderboard.map(entry => entry.score);
@@ -72,7 +74,7 @@ export function WikiRaceGame() {
         setShowNameInput(true);
       }
     }
-  }, [status, gameState.score, gameState.playerNickname]);
+  }, [status, gameState.score, gameState.playerNickname, gameMode]);
 
   useEffect(() => {
     if (status === 'playing' || status === 'finished') {
